@@ -8,7 +8,7 @@ export class OtpEntity extends BaseEntity {
   @Column()
   code: string;
   @Column()
-  expriresIn: Date;
+  expiresIn: Date;
   @Column()
   userId: number;
   @OneToOne(() => UserEntity, (user) => user.otp, { onDelete: 'CASCADE' })

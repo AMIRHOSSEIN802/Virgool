@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthDto } from './dto/auth.dto';
@@ -13,7 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from '../user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { ProfileEntity } from '../user/entities/profile.entity';
-import { AuthMessage } from 'src/common/enums/message.enum';
+import { AuthMessage, BadRequestMessage } from 'src/common/enums/message.enum';
 import { randomInt } from 'crypto';
 import { OtpEntity } from '../user/entities/otp.entity';
 
@@ -46,7 +45,7 @@ export class AuthService {
 
   async login(method: AuthMethod, username: string) {
     const validUsername = this.usernameValidator(method, username);
-    const user: UserEntity = await this.checkExistUser(method, validUsername);
+    const user = await this.checkExistUser(method, validUsername);
     if (!user) {
       throw new UnauthorizedException(AuthMessage.NotFoundAccount);
     }
@@ -58,13 +57,17 @@ export class AuthService {
 
   async register(method: AuthMethod, username: string) {
     const validUsername = this.usernameValidator(method, username);
-    let user: UserEntity = await this.checkExistUser(method, validUsername);
+    let user = await this.checkExistUser(method, validUsername);
     // let user = await this.checkExistUser(method, validUsername);
     if (user) throw new ConflictException(AuthMessage.AlreadyExistAccount);
+    if (method === AuthMethod.Username)
+      throw new BadRequestException(BadRequestMessage.InValidReqisterDate);
     user = this.userRepository.create({
       [method]: username,
     });
     user = await this.userRepository.save(user);
+    user.username = `m_${user.id}`;
+    await this.userRepository.save(user);
     const otp = await this.saveOtp(user.id);
     return {
       code: otp.code,
@@ -101,26 +104,20 @@ export class AuthService {
   async checkExistUser(
     method: AuthMethod,
     username: string,
-  ): Promise<UserEntity> {
-    let user: UserEntity | null = null;
-
+  ): Promise<UserEntity | null> {
     if (method === AuthMethod.phone) {
-      user = await this.userRepository.findOneBy({ phone: username });
+      return await this.userRepository.findOneBy({ phone: username });
     }
 
     if (method === AuthMethod.Emai) {
-      user = await this.userRepository.findOneBy({ email: username });
+      return await this.userRepository.findOneBy({ email: username });
     }
 
     if (method === AuthMethod.Username) {
-      user = await this.userRepository.findOneBy({ username });
+      return await this.userRepository.findOneBy({ username });
     }
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    return user;
+    return null;
   }
 
   usernameValidator(method: AuthMethod, username: string): string {

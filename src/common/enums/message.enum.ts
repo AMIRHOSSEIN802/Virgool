@@ -6,6 +6,8 @@ export enum AuthMessage {
   NotFoundAccount = 'حساب کاربری یافت نشد',
   AlreadyExistAccount = 'حساب کاربری با این مشخصات قبلا وجود دارد',
 }
-export enum NotFoundMessage {}
+export enum PublicMessage {
+  SendOtp = 'کد ارسال شد',
+}
 
 export enum ValidationMessage {}

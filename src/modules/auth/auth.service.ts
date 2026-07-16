@@ -12,9 +12,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from '../user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { ProfileEntity } from '../user/entities/profile.entity';
-import { AuthMessage, BadRequestMessage } from 'src/common/enums/message.enum';
+import {
+  AuthMessage,
+  BadRequestMessage,
+  PublicMessage,
+} from 'src/common/enums/message.enum';
 import { randomInt } from 'crypto';
 import { OtpEntity } from '../user/entities/otp.entity';
+import { TokensService } from './tokens.service';
+import { CookieKeys } from 'src/common/enums/cookie.enum';
+import { Response } from 'express';
+import { AuthResponse } from './types/response';
 
 @Injectable()
 export class AuthService {
@@ -26,18 +34,21 @@ export class AuthService {
     private readonly profileRepository: Repository<ProfileEntity>,
     @InjectRepository(OtpEntity)
     private readonly OtpRepository: Repository<OtpEntity>,
+    private tokenService: TokensService,
   ) {}
 
-  usserExistence(authDto: AuthDto) {
+  async userExistence(authDto: AuthDto, res: Response) {
     const { method, type, username } = authDto;
-
+    let result: AuthResponse;
     switch (type) {
       case AuthType.Login:
-        return this.login(method, username);
-
+        result = await this.login(method, username);
+        // await this.sendOtp(method, username, result.code)
+        return this.sendResponse(res, result);
       case AuthType.Register:
-        return this.register(method, username);
-
+        result = await this.register(method, username);
+        // await this.sendOtp(method, username, result.code)
+        return this.sendResponse(res, result);
       default:
         throw new UnauthorizedException();
     }
@@ -50,8 +61,10 @@ export class AuthService {
       throw new UnauthorizedException(AuthMessage.NotFoundAccount);
     }
     const otp = await this.saveOtp(user.id);
+    const token = this.tokenService.createOtpToken({ userId: user.id });
     return {
-      Code: otp.code,
+      token,
+      code: otp.code,
     };
   }
 
@@ -69,9 +82,19 @@ export class AuthService {
     user.username = `m_${user.id}`;
     await this.userRepository.save(user);
     const otp = await this.saveOtp(user.id);
+    const token = this.tokenService.createOtpToken({ userId: user.id });
     return {
+      token,
       code: otp.code,
     };
+  }
+  sendResponse(res: Response, result: AuthResponse) {
+    const { code, token } = result;
+    res.cookie(CookieKeys.OTP, token, { httpOnly: true });
+    res.json({
+      message: PublicMessage.SendOtp,
+      code,
+    });
   }
   async saveOtp(userId: number) {
     const code = randomInt(10000, 99999).toString();

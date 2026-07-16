@@ -1,7 +1,9 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
+  Scope,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthDto } from './dto/auth.dto';
@@ -21,10 +23,11 @@ import { randomInt } from 'crypto';
 import { OtpEntity } from '../user/entities/otp.entity';
 import { TokensService } from './tokens.service';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
-import { Response } from 'express';
+import type { Request, Response } from 'express';
 import { AuthResponse } from './types/response';
+import { REQUEST } from '@nestjs/core';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
@@ -34,6 +37,7 @@ export class AuthService {
     private readonly profileRepository: Repository<ProfileEntity>,
     @InjectRepository(OtpEntity)
     private readonly OtpRepository: Repository<OtpEntity>,
+    @Inject(REQUEST) private request: Request,
     private tokenService: TokensService,
   ) {}
 
@@ -90,12 +94,16 @@ export class AuthService {
   }
   sendResponse(res: Response, result: AuthResponse) {
     const { code, token } = result;
-    res.cookie(CookieKeys.OTP, token, { httpOnly: true });
+    res.cookie(CookieKeys.OTP, token, {
+      httpOnly: true,
+      expires: new Date(Date.now() + 1000 * 60 * 2),
+    });
     res.json({
       message: PublicMessage.SendOtp,
       code,
     });
   }
+
   async saveOtp(userId: number) {
     const code = randomInt(10000, 99999).toString();
     const expiresIn = new Date(Date.now() + 1000 * 60 * 2);
@@ -124,6 +132,14 @@ export class AuthService {
     return otp;
   }
 
+  checkOtp(code: string) {
+    const token = this.request.cookies?.[CookieKeys.OTP];
+    if (!token) throw new UnauthorizedException(AuthMessage.ExiredCode);
+    return {
+      code,
+      token,
+    };
+  }
   async checkExistUser(
     method: AuthMethod,
     username: string,

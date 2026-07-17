@@ -143,8 +143,10 @@ export class AuthService {
       throw new UnauthorizedException(AuthMessage.ExiredCode);
     if (otp.code !== code)
       throw new UnauthorizedException(AuthMessage.TryAgain);
+    const accessToken = this.tokenService.createAccessToken({ userId });
     return {
       message: PublicMessage.LoggedIn,
+      accessToken,
     };
   }
   async checkExistUser(

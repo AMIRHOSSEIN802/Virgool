@@ -19,13 +19,13 @@ export class TokensService {
       return this.jwtService.verify(token, {
         secret: process.env.OTP_TOKEN_SECRET,
       });
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException(AuthMessage.TryAgain);
     }
   }
   createAccessToken(payload: AccessTokenPayload) {
     const token = this.jwtService.sign(payload, {
-      secret: process.env.ACCESS_TOKEN_SECRETT,
+      secret: process.env.ACCESS_TOKEN_SECRET,
       expiresIn: '1y',
     });
     return token;
@@ -35,7 +35,7 @@ export class TokensService {
       return this.jwtService.verify(token, {
         secret: process.env.ACCESS_TOKEN_SECRET,
       });
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException(AuthMessage.LoginAgin);
     }
   }

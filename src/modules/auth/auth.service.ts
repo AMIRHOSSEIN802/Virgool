@@ -133,7 +133,7 @@ export class AuthService {
   }
 
   async checkOtp(code: string) {
-    const token = this.request.cookies?.[CookieKeys.OTP];
+    const token = this.request.cookies[CookieKeys.OTP] as string;
     if (!token) throw new UnauthorizedException(AuthMessage.ExiredCode);
     const { userId } = this.tokenService.verifyOtpToken(token);
     const otp = await this.OtpRepository.findOneBy({ userId });
@@ -149,6 +149,7 @@ export class AuthService {
       accessToken,
     };
   }
+
   async checkExistUser(
     method: AuthMethod,
     username: string,
@@ -166,6 +167,13 @@ export class AuthService {
     }
 
     return null;
+  }
+
+  async validateAccessToken(token: string) {
+    const { userId } = this.tokenService.verifyAccessToken(token);
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) throw new UnauthorizedException(AuthMessage.LoginAgin);
+    return user;
   }
 
   usernameValidator(method: AuthMethod, username: string): string {

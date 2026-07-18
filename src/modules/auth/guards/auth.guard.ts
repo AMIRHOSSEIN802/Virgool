@@ -14,7 +14,7 @@ export class AuthGuard implements CanActivate {
   constructor(private authservice: AuthService) {}
   async canActivate(context: ExecutionContext) {
     const httpContext = context.switchToHttp();
-    const request: Request = httpContext.getNext<Request>();
+    const request: Request = httpContext.getRequest<Request>();
     const token = this.extractToken(request);
     request.user = await this.authservice.validateAccessToken(token);
     return true;

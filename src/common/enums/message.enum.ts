@@ -16,4 +16,6 @@ export enum PublicMessage {
   Created = 'با موفقیت ایجاد شد',
 }
 
-export enum ValidationMessage {}
+export enum ConflictMessage {
+  CategoryTitle = 'عنوان وارد شده صحیح نمی باشد',
+}

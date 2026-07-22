@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoryEntity } from './entities/category.entity';
 import { Repository } from 'typeorm';
-import { PublicMessage } from 'src/common/enums/message.enum';
+import { ConflictMessage, PublicMessage } from 'src/common/enums/message.enum';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 @Injectable()
 export class CategoryService {
@@ -13,7 +14,8 @@ export class CategoryService {
     private categoryRepository: Repository<CategoryEntity>,
   ) {}
   async create(createCategoryDto: CreateCategoryDto) {
-    const { priority, title } = createCategoryDto;
+    let { title, priority } = createCategoryDto;
+    title = await this.checkExistAndResolveTitle(title);
     const category = this.categoryRepository.create({
       title,
       priority,
@@ -24,8 +26,16 @@ export class CategoryService {
     };
   }
 
-  findAll() {
-    return `This action returns all category`;
+  async checkExistAndResolveTitle(title: string) {
+    title = title?.trim()?.toLowerCase();
+    const category = await this.categoryRepository.findOneBy({ title });
+    if (category) throw new ConflictException(ConflictMessage.CategoryTitle);
+    return title;
+  }
+
+  findAll(paginationDto: PaginationDto) {
+    console.log(paginationDto);
+    return this.categoryRepository.findBy({});
   }
 
   findOne(id: number) {

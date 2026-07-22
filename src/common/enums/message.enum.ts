@@ -13,6 +13,7 @@ export enum AuthMessage {
 export enum PublicMessage {
   SendOtp = 'کد با موفقیت ارسال شد',
   LoggedIn = 'با موفقیت واررد حساب کاربری خود شدید',
+  Created = 'با موفقیت ایجاد شد',
 }
 
 export enum ValidationMessage {}

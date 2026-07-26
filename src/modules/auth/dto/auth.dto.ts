@@ -9,7 +9,7 @@ export class AuthDto {
   @Length(3, 60)
   username: string;
   @ApiProperty({ enum: AuthType })
-  @IsEnum(AuthDto)
+  @IsEnum(AuthType)
   type: AuthType;
   @ApiProperty({ enum: AuthMethod })
   @IsEnum(AuthMethod)

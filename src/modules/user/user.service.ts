@@ -11,6 +11,7 @@ import { Gender } from './enums/gender.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PublicMessage } from 'src/common/enums/message.enum';
+import { ProfileImages } from './types/files';
 
 @Injectable({ scope: Scope.REQUEST })
 export class UserService {
@@ -22,9 +23,7 @@ export class UserService {
     @Inject(REQUEST) private request: Request,
   ) {}
 
-  async changeProfile(files: any, profileDto: ProfileDto) {
-    console.log(files);
-
+  async changeProfile(files: ProfileImages, profileDto: ProfileDto) {
     if (files?.image_profile?.length > 0) {
       let [image] = files?.image_profile;
       profileDto.image_profile = image?.path?.slice(7);
@@ -79,6 +78,16 @@ export class UserService {
     return {
       message: PublicMessage.Updated,
     };
+  }
+
+  profile() {
+    const { id } = this.request.user;
+    return this.userRepository.findOne({
+      where: { id },
+      relations: {
+        profile: true,
+      },
+    });
   }
 
   create(createUserDto: CreateUserDto) {

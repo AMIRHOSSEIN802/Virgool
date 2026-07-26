@@ -29,3 +29,6 @@ export enum NotFoundMessage {
 export enum ConflictMessage {
   CategoryTitle = 'عنوان وارد شده صحیح نمی باشد',
 }
+export enum ValidationMessage {
+  InvalidImageFormat = 'فرمت تصویر انتخاب شده باید از نوع jpg , png باشد',
+}

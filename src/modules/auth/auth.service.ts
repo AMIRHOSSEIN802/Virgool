@@ -26,6 +26,7 @@ import { CookieKeys } from 'src/common/enums/cookie.enum';
 import type { Request, Response } from 'express';
 import { AuthResponse } from './types/response';
 import { REQUEST } from '@nestjs/core';
+import { CookiesOptionsToken } from 'src/common/utils/cookie.util';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AuthService {
@@ -64,7 +65,7 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException(AuthMessage.NotFoundAccount);
     }
-    const otp = await this.saveOtp(user.id);
+    const otp = await this.saveOtp(user.id, method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
     return {
       token,
@@ -85,9 +86,7 @@ export class AuthService {
     user = await this.userRepository.save(user);
     user.username = `m_${user.id}`;
     await this.userRepository.save(user);
-    const otp = await this.saveOtp(user.id);
-    otp.method = method;
-    await this.OtpRepository.save(otp);
+    const otp = await this.saveOtp(user.id, method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
     return {
       token,
@@ -96,17 +95,14 @@ export class AuthService {
   }
   sendResponse(res: Response, result: AuthResponse) {
     const { code, token } = result;
-    res.cookie(CookieKeys.OTP, token, {
-      httpOnly: true,
-      expires: new Date(Date.now() + 1000 * 60 * 2),
-    });
+    res.cookie(CookieKeys.OTP, token, CookiesOptionsToken());
     res.json({
       message: PublicMessage.SendOtp,
       code,
     });
   }
 
-  async saveOtp(userId: number) {
+  async saveOtp(userId: number, method: AuthMethod) {
     const code = randomInt(10000, 99999).toString();
     const expiresIn = new Date(Date.now() + 1000 * 60 * 2);
     let otp = await this.OtpRepository.findOneBy({ userId });
@@ -115,11 +111,13 @@ export class AuthService {
       existOtp = true;
       otp.code = code;
       otp.expiresIn = expiresIn;
+      otp.method = method;
     } else {
       otp = this.OtpRepository.create({
         code,
         expiresIn,
         userId,
+        method,
       });
     }
     otp = await this.OtpRepository.save(otp);

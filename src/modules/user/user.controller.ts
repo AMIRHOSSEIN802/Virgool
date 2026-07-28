@@ -9,18 +9,23 @@ import {
   Put,
   UseInterceptors,
   UseGuards,
+  Res,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
-import { ProfileDto } from './dto/profile.dto';
+import { ChangeEmailDto, ProfileDto } from './dto/profile.dto';
 import { multerStorage } from 'src/common/utils/multer.utils';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import type { ProfileImages } from './types/files';
 import { UploadedOptionalFiles } from 'src/common/decorators/upload-file-decorators';
+import type { Response } from 'express';
+import { CookieKeys } from 'src/common/enums/cookie.enum';
+import { CookiesOptionsToken } from 'src/common/utils/cookie.util';
+import { CheckOtpDto } from '../auth/dto/auth.dto';
 
 @Controller('user')
 @ApiBearerAuth('Authorization')
@@ -51,6 +56,24 @@ export class UserController {
   @Get('/profile')
   profile() {
     return this.userService.profile();
+  }
+
+  @Patch('/change-email')
+  async changeEmail(@Body() emailDto: ChangeEmailDto, @Res() res: Response) {
+    const { code, token, message } = await this.userService.changeEmail(
+      emailDto.email,
+    );
+    if (message) return res.json({ message });
+    res.cookie(CookieKeys.EmailOTP, token, CookiesOptionsToken());
+    res.json({
+      code,
+      message,
+    });
+  }
+
+  @Post('/verify-email-otp')
+  async verifyEmail(@Body() otpDto: CheckOtpDto) {
+    return this.userService.verifyEmail(otpDto.code);
   }
 
   @Post()

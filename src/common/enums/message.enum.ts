@@ -33,4 +33,6 @@ export enum ConflictMessage {
 }
 export enum ValidationMessage {
   InvalidImageFormat = 'فرمت تصویر انتخاب شده باید از نوع jpg , png باشد',
+  InvalidEmailFormat = 'ایمیل وارد شده صحیح نمی باشد',
+  InvalidPhoneFormat = 'شماره موبایل وارد شده صحیح نمی باشد',
 }

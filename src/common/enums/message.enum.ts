@@ -1,6 +1,7 @@
 export enum BadRequestMessage {
   InvalidLoginDate = 'اطلاعات ارسال شده برای ورود صحیح نمی باشد',
   InValidReqisterDate = 'اطلاعات ارسال شده برای ثبت نام صحیح نمی باشد',
+  SomthingWrong = 'خطایی پیش امده مجددا تلاش کنید',
 }
 export enum AuthMessage {
   NotFoundAccount = 'حساب کاربری یافت نشد',
@@ -28,6 +29,7 @@ export enum NotFoundMessage {
 
 export enum ConflictMessage {
   CategoryTitle = 'عنوان وارد شده صحیح نمی باشد',
+  Email = 'ایمیل اشتباه است',
 }
 export enum ValidationMessage {
   InvalidImageFormat = 'فرمت تصویر انتخاب شده باید از نوع jpg , png باشد',

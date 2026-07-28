@@ -86,6 +86,8 @@ export class AuthService {
     user.username = `m_${user.id}`;
     await this.userRepository.save(user);
     const otp = await this.saveOtp(user.id);
+    otp.method = method;
+    await this.OtpRepository.save(otp);
     const token = this.tokenService.createOtpToken({ userId: user.id });
     return {
       token,
@@ -144,6 +146,21 @@ export class AuthService {
     if (otp.code !== code)
       throw new UnauthorizedException(AuthMessage.TryAgain);
     const accessToken = this.tokenService.createAccessToken({ userId });
+    if (otp.method === AuthMethod.Emai) {
+      await this.userRepository.update(
+        { id: userId },
+        {
+          verify_email: true,
+        },
+      );
+    } else if (otp.method === AuthMethod.phone) {
+      await this.userRepository.update(
+        { id: userId },
+        {
+          verify_phone: true,
+        },
+      );
+    }
     return {
       message: PublicMessage.LoggedIn,
       accessToken,

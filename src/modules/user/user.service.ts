@@ -1,4 +1,4 @@
-import { Inject, Injectable, Scope } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Scope } from '@nestjs/common';
 import { ProfileDto } from './dto/profile.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
@@ -10,8 +10,10 @@ import { isDate } from 'class-validator';
 import { Gender } from './enums/gender.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { PublicMessage } from 'src/common/enums/message.enum';
+import { ConflictMessage, PublicMessage } from 'src/common/enums/message.enum';
 import { ProfileImages } from './types/files';
+import { AuthService } from '../auth/auth.service';
+import { TokensService } from '../auth/tokens.service';
 
 @Injectable({ scope: Scope.REQUEST })
 export class UserService {
@@ -21,6 +23,8 @@ export class UserService {
     @InjectRepository(ProfileEntity)
     private profileRepository: Repository<ProfileEntity>,
     @Inject(REQUEST) private request: Request,
+    private authService: AuthService,
+    private tokenService: TokensService,
   ) {}
 
   async changeProfile(files: ProfileImages, profileDto: ProfileDto) {
@@ -88,6 +92,57 @@ export class UserService {
         profile: true,
       },
     });
+  }
+
+  // async changeEmail(email: string) {
+  //   const { id } = this.request.user;
+  //   const user = await this.userRepository.findOneBy({ email });
+  //   if (user && user?.id !== id) {
+  //     throw new ConflictException(ConflictMessage.Email);
+  //   } else if (user && user.id == id) {
+  //     return {
+  //       message: PublicMessage.Updated,
+  //     };
+  //   }
+  //   user.new_email = email;
+  //   const otp = await this.authService.saveOtp(user?.id);
+  //   const token = this.tokenService.createEmailToken({ email });
+  //   return {
+  //     code: otp.code,
+  //     token,
+  //   };
+  // }
+
+  async changeEmail(email: string) {
+    const { id } = this.request.user;
+
+    const existUser = await this.userRepository.findOneBy({ email });
+
+    if (existUser && existUser.id !== id) {
+      throw new ConflictException(ConflictMessage.Email);
+    }
+
+    if (existUser && existUser.id === id) {
+      return {
+        message: PublicMessage.Updated,
+      };
+    }
+
+    await this.userRepository.update(
+      { id },
+      {
+        new_email: email,
+      },
+    );
+
+    const otp = await this.authService.saveOtp(id);
+
+    const token = this.tokenService.createEmailToken({ email });
+
+    return {
+      code: otp.code,
+      token,
+    };
   }
 
   create(createUserDto: CreateUserDto) {

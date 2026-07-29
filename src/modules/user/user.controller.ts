@@ -16,7 +16,12 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
-import { ChangeEmailDto, ChangePhoneDto, ProfileDto } from './dto/profile.dto';
+import {
+  ChangeEmailDto,
+  ChangePhoneDto,
+  ChangeUsernameDto,
+  ProfileDto,
+} from './dto/profile.dto';
 import { multerStorage } from 'src/common/utils/multer.utils';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -36,6 +41,7 @@ export class UserController {
 
   @Put('/profile')
   @ApiConsumes(SwaggerConsumes.MultipartDate)
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -55,6 +61,7 @@ export class UserController {
   }
 
   @Get('/profile')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   profile() {
     return this.userService.profile();
   }
@@ -73,11 +80,13 @@ export class UserController {
   }
 
   @Post('/verify-email-otp')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   async verifyEmail(@Body() otpDto: CheckOtpDto) {
     return this.userService.verifyEmail(otpDto.code);
   }
 
   @Patch('/change-phone')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   async changephone(@Body() phoneDto: ChangePhoneDto, @Res() res: Response) {
     const { code, token, message } = await this.userService.changePhone(
       phoneDto.phone,
@@ -91,8 +100,15 @@ export class UserController {
   }
 
   @Post('/verify-phone-otp')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   async verifyphone(@Body() otpDto: CheckOtpDto) {
     return this.userService.verifyPhone(otpDto.code);
+  }
+
+  @Patch('/change-username')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
+  async changeUsername(@Body() usernameDto: ChangeUsernameDto) {
+    return this.userService.changeUserna(usernameDto.username);
   }
 
   @Post()

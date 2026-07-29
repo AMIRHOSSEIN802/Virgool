@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsMobilePhone,
   IsOptional,
+  IsString,
   Length,
 } from 'class-validator';
 import { ValidationMessage } from 'src/common/enums/message.enum';
@@ -42,4 +43,10 @@ export class ChangePhoneDto {
   @ApiProperty()
   @IsMobilePhone('fa-IR', {}, { message: ValidationMessage.InvalidPhoneFormat })
   phone: string;
+}
+export class ChangeUsernameDto {
+  @ApiProperty()
+  @IsString()
+  @Length(3, 100)
+  username: string;
 }

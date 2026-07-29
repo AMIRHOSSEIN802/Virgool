@@ -16,7 +16,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
-import { ChangeEmailDto, ProfileDto } from './dto/profile.dto';
+import { ChangeEmailDto, ChangePhoneDto, ProfileDto } from './dto/profile.dto';
 import { multerStorage } from 'src/common/utils/multer.utils';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../auth/guards/auth.guard';
@@ -26,6 +26,7 @@ import type { Response } from 'express';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { CookiesOptionsToken } from 'src/common/utils/cookie.util';
 import { CheckOtpDto } from '../auth/dto/auth.dto';
+import { PublicMessage } from 'src/common/enums/message.enum';
 
 @Controller('user')
 @ApiBearerAuth('Authorization')
@@ -74,6 +75,24 @@ export class UserController {
   @Post('/verify-email-otp')
   async verifyEmail(@Body() otpDto: CheckOtpDto) {
     return this.userService.verifyEmail(otpDto.code);
+  }
+
+  @Patch('/change-phone')
+  async changephone(@Body() phoneDto: ChangePhoneDto, @Res() res: Response) {
+    const { code, token, message } = await this.userService.changePhone(
+      phoneDto.phone,
+    );
+    if (message) return res.json({ message });
+    res.cookie(CookieKeys.PhoneOTP, token, CookiesOptionsToken());
+    res.json({
+      code,
+      message: PublicMessage.SendOtp,
+    });
+  }
+
+  @Post('/verify-phone-otp')
+  async verifyphone(@Body() otpDto: CheckOtpDto) {
+    return this.userService.verifyPhone(otpDto.code);
   }
 
   @Post()

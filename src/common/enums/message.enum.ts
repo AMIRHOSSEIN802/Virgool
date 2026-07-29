@@ -30,6 +30,7 @@ export enum NotFoundMessage {
 export enum ConflictMessage {
   CategoryTitle = 'عنوان وارد شده صحیح نمی باشد',
   Email = 'ایمیل اشتباه است',
+  Phone = 'شماره موبایل اشتباه است',
 }
 export enum ValidationMessage {
   InvalidImageFormat = 'فرمت تصویر انتخاب شده باید از نوع jpg , png باشد',

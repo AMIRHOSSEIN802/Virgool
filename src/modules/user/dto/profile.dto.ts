@@ -38,8 +38,8 @@ export class ChangeEmailDto {
   @IsEmail({}, { message: ValidationMessage.InvalidEmailFormat })
   email: string;
 }
-export class ChangePhonelDto {
+export class ChangePhoneDto {
   @ApiProperty()
   @IsMobilePhone('fa-IR', {}, { message: ValidationMessage.InvalidPhoneFormat })
-  email: string;
+  phone: string;
 }

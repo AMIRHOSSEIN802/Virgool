@@ -5,11 +5,15 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   UpdateDateColumn,
 } from 'typeorm';
 import { OtpEntity } from './otp.entity';
 import { ProfileEntity } from './profile.entity';
+import { BlogEntity } from 'src/modules/blog/entities/blog.entity';
+import { BlogLikeEntity } from 'src/modules/blog/entities/like.entity';
+import { BlogBookmarkEntity } from 'src/modules/blog/entities/bookmark.entity';
 
 @Entity(EntityName.User)
 export class UserEntity extends BaseEntity {
@@ -45,6 +49,12 @@ export class UserEntity extends BaseEntity {
   @OneToOne(() => ProfileEntity, (profile) => profile.user, { nullable: true })
   @JoinColumn()
   profile: ProfileEntity;
+  @OneToMany(() => BlogEntity, (blog) => blog.author)
+  blogs: BlogEntity[];
+  @OneToMany(() => BlogLikeEntity, (like) => like.user)
+  blog_like: BlogLikeEntity[];
+  @OneToMany(() => BlogBookmarkEntity, (bookmark) => bookmark.user)
+  blog_bookmaeks: BlogBookmarkEntity[];
   @CreateDateColumn()
   created_at: Date;
   @UpdateDateColumn()

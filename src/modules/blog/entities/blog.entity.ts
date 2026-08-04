@@ -5,12 +5,14 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   UpdateDateColumn,
 } from 'typeorm';
 import { BlogStatus } from '../enums/status.enum';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { BlogLikeEntity } from './like.entity';
 import { BlogBookmarkEntity } from './bookmark.entity';
+import { BlogCommenrtEntity } from './comment.entity';
 
 @Entity(EntityName.blog)
 export class BlogEntity extends BaseEntity {
@@ -20,8 +22,12 @@ export class BlogEntity extends BaseEntity {
   description: string;
   @Column()
   content: string;
-  @Column()
+  @Column({ nullable: true })
   image: string;
+  @Column({ unique: true })
+  slug: string;
+  @Column()
+  time_for_study: string;
   @Column({ default: BlogStatus.Draft })
   status: string;
   @Column()
@@ -34,6 +40,8 @@ export class BlogEntity extends BaseEntity {
     onDelete: 'CASCADE',
   })
   bookmarks: BlogBookmarkEntity[];
+  @OneToMany(() => BlogCommenrtEntity, (comment) => comment.blog)
+  comments: BlogCommenrtEntity[];
   @CreateDateColumn()
   created_at: Date;
   @UpdateDateColumn()

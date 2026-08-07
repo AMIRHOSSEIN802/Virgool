@@ -3,6 +3,7 @@ import { UserEntity } from 'src/modules/user/entities/user.entity';
 import {
   Column,
   CreateDateColumn,
+  Entity,
   JoinColumn,
   ManyToMany,
   ManyToOne,
@@ -10,6 +11,7 @@ import {
 } from 'typeorm';
 import { BlogEntity } from './blog.entity';
 
+@Entity()
 export class BlogCommenrtEntity extends BaseEntity {
   @Column()
   text: string;

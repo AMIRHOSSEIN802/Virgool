@@ -6,3 +6,5 @@ export const createSlug = (str: string): string => {
     .replace(/^-+|-+$/g, '')
     .toLowerCase();
 };
+
+export const randomId = () => Math.random().toString(36).substring(2);

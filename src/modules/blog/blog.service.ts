@@ -19,13 +19,16 @@ export class BlogService {
 
   async create(blogDto: CreateBlogDto) {
     const user = this.request.user;
-    let { title, slug, content, description, image, time_for_study } = blogDto;
-    const slugData = slug ?? title;
-    slug = createSlug(slugData);
-    const isExist = await this.checkBlogBySlug(slug);
-    if (isExist) {
-      slug += `-${randomId()}`;
-    }
+
+    const { title, content, description, image, time_for_study } = blogDto;
+
+    const slugData = blogDto.slug?.trim() || title;
+
+    const baseSlug = createSlug(slugData);
+
+    const isExist = await this.checkBlogBySlug(baseSlug);
+
+    const slug = isExist ? `${baseSlug}-${randomId()}` : baseSlug;
     const blog = this.blogRepository.create({
       title,
       slug,

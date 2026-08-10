@@ -8,11 +8,21 @@ import { AuthService } from '../auth.service';
 import { Request } from 'express';
 import { AuthMessage } from 'src/common/enums/message.enum';
 import { isJWT } from 'class-validator';
+import { Reflector } from '@nestjs/core';
+import { SKIP_AUTH } from 'src/common/decorators/skip-auth.decorator';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private authservice: AuthService) {}
+  constructor(
+    private authservice: AuthService,
+    private reflector: Reflector,
+  ) {}
   async canActivate(context: ExecutionContext) {
+    const isSkippedAuthorization = this.reflector.get<boolean>(
+      SKIP_AUTH,
+      context.getHandler(),
+    );
+    if (isSkippedAuthorization) return true;
     const httpContext = context.switchToHttp();
     const request: Request = httpContext.getRequest<Request>();
     const token = this.extractToken(request);

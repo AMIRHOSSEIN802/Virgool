@@ -2,6 +2,7 @@ export enum BadRequestMessage {
   InvalidLoginDate = 'اطلاعات ارسال شده برای ورود صحیح نمی باشد',
   InValidReqisterDate = 'اطلاعات ارسال شده برای ثبت نام صحیح نمی باشد',
   SomthingWrong = 'خطایی پیش امده مجددا تلاش کنید',
+  invalidCategorise = 'دسته بندی عا را به درستی وارد کنید ',
 }
 export enum AuthMessage {
   NotFoundAccount = 'حساب کاربری یافت نشد',

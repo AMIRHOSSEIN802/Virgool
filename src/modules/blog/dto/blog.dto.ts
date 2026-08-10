@@ -22,4 +22,6 @@ export class CreateBlogDto {
   @IsNotEmpty()
   @Length(100)
   content: string;
+  @ApiProperty({ type: String, isArray: true })
+  categories: string[] | string;
 }

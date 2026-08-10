@@ -37,6 +37,12 @@ export class CategoryService {
       message: PublicMessage.Created,
     };
   }
+  async insertByTitle(title: string) {
+    const category = this.categoryRepository.create({
+      title,
+    });
+    return this.categoryRepository.save(category);
+  }
 
   async checkExistAndResolveTitle(title: string) {
     title = title?.trim()?.toLowerCase();
@@ -63,6 +69,9 @@ export class CategoryService {
     if (!category)
       throw new NotFoundException(NotFoundMessage.NotFoundCategory);
     return category;
+  }
+  async findOneByTitle(title: string) {
+    return await this.categoryRepository.findOneBy({ title });
   }
 
   async update(id: number, updateCategoryDto: UpdateCategoryDto) {

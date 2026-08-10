@@ -1,4 +1,4 @@
-import { Inject, Injectable, Scope } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Scope } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BlogEntity } from './entities/blog.entity';
 import { Repository } from 'typeorm';
@@ -7,33 +7,53 @@ import { createSlug, randomId } from 'src/common/utils/functions.util';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
 import { BlogStatus } from './enums/status.enum';
-import { PublicMessage } from 'src/common/enums/message.enum';
+import {
+  BadRequestMessage,
+  PublicMessage,
+} from 'src/common/enums/message.enum';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import {
   paginationGenerator,
   paginationSolver,
 } from 'src/common/utils/pagination.util';
+import { isArray } from 'class-validator';
+import { CategoryService } from '../category/category.service';
+import { BlogCategoryEntity } from './entities/blog-category.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogService {
   constructor(
     @InjectRepository(BlogEntity)
     private blogRepository: Repository<BlogEntity>,
+    @InjectRepository(BlogCategoryEntity)
+    private blogCategoryRepository: Repository<BlogCategoryEntity>,
     @Inject(REQUEST) private request: Request,
+    private categoryService: CategoryService,
   ) {}
 
   async create(blogDto: CreateBlogDto) {
     const user = this.request.user;
 
-    const { title, content, description, image, time_for_study } = blogDto;
+    const { title, content, description, image, time_for_study, categories } =
+      blogDto;
 
-    const slugData = blogDto.slug?.trim() || title;
+    let categoryList = categories;
 
-    const baseSlug = createSlug(slugData);
+    if (typeof categoryList === 'string') {
+      categoryList = categoryList
+        .split(',')
+        .map((category) => category.trim())
+        .filter(Boolean);
+    } else if (!isArray(categoryList)) {
+      throw new BadRequestException(BadRequestMessage.invalidCategorise);
+    }
+
+    const baseSlug = createSlug(blogDto.slug?.trim() || title);
 
     const isExist = await this.checkBlogBySlug(baseSlug);
 
     const slug = isExist ? `${baseSlug}-${randomId()}` : baseSlug;
+
     const blog = this.blogRepository.create({
       title,
       slug,
@@ -44,7 +64,22 @@ export class BlogService {
       time_for_study,
       authorId: user.id,
     });
+
     await this.blogRepository.save(blog);
+
+    for (const categoryTitle of categoryList) {
+      let category = await this.categoryService.findOneByTitle(categoryTitle);
+
+      if (!category) {
+        category = await this.categoryService.insertByTitle(categoryTitle);
+      }
+
+      await this.blogCategoryRepository.insert({
+        blogId: blog.id,
+        categoryId: category.id,
+      });
+    }
+
     return {
       message: PublicMessage.Created,
     };

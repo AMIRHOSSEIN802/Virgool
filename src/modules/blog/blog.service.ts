@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, Scope } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BlogEntity } from './entities/blog.entity';
 import { Repository } from 'typeorm';
-import { CreateBlogDto } from './dto/blog.dto';
+import { CreateBlogDto, FilterBlogDto } from './dto/blog.dto';
 import { createSlug, randomId } from 'src/common/utils/functions.util';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
@@ -19,6 +19,7 @@ import {
 import { isArray } from 'class-validator';
 import { CategoryService } from '../category/category.service';
 import { BlogCategoryEntity } from './entities/blog-category.entity';
+import { EntityName } from 'src/common/enums/entity.eunm';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogService {
@@ -99,16 +100,44 @@ export class BlogService {
       },
     });
   }
-  async blogList(paginationDto: PaginationDto) {
+  async blogList(paginationDto: PaginationDto, filterDto: FilterBlogDto) {
     const { limit, page, skip } = paginationSolver(paginationDto);
-    const [blogs, count] = await this.blogRepository.findAndCount({
-      where: {},
-      order: {
-        id: 'DESC',
-      },
-      skip,
-      take: limit,
-    });
+
+    let { category, search } = filterDto;
+
+    let where = '';
+
+    if (category) {
+      category = category.toLowerCase();
+      if (where.length > 0) where += ' AND ';
+      where += 'category.title = LOWER(:category)';
+    }
+
+    if (search) {
+      if (where.length > 0) where += ' AND ';
+      search = `%${search}%`;
+      where +=
+        'CONCAT(blog.title, blog.description, blog.content) ILIKE :search';
+    }
+    const [blogs, count] = await this.blogRepository
+      .createQueryBuilder(EntityName.blog)
+      .leftJoin('blog.categories', 'blogCategory')
+      .leftJoin('blogCategory.category', 'category')
+      .addSelect(['blogCategory.id', 'category.title'])
+      .where(where, { category, search })
+      .orderBy('blog.id', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    // const [blogs, count] = await this.blogRepository.findAndCount({
+    //   where: {},
+    //   order: {
+    //     id: 'DESC',
+    //   },
+    //   skip,
+    //   take: limit,
+    // });
     return {
       pagination: paginationGenerator(count, page, limit),
       blogs,

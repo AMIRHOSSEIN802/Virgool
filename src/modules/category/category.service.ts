@@ -26,8 +26,8 @@ export class CategoryService {
     private categoryRepository: Repository<CategoryEntity>,
   ) {}
   async create(createCategoryDto: CreateCategoryDto) {
-    let { title, priority } = createCategoryDto;
-    title = await this.checkExistAndResolveTitle(title);
+    const { title: categoryTitle, priority } = createCategoryDto;
+    const title = await this.checkExistAndResolveTitle(categoryTitle);
     const category = this.categoryRepository.create({
       title,
       priority,

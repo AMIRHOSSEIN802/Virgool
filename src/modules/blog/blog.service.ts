@@ -1,14 +1,21 @@
-import { BadRequestException, Inject, Injectable, Scope } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Scope,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BlogEntity } from './entities/blog.entity';
 import { Repository } from 'typeorm';
-import { CreateBlogDto, FilterBlogDto } from './dto/blog.dto';
+import { CreateBlogDto, FilterBlogDto, UpdateBlogDto } from './dto/blog.dto';
 import { createSlug, randomId } from 'src/common/utils/functions.util';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
 import { BlogStatus } from './enums/status.enum';
 import {
   BadRequestMessage,
+  NotFoundMessage,
   PublicMessage,
 } from 'src/common/enums/message.enum';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
@@ -87,7 +94,7 @@ export class BlogService {
   }
   async checkBlogBySlug(slug: string) {
     const blog = await this.blogRepository.findOneBy({ slug });
-    return !!blog;
+    return blog;
   }
   async myBlog() {
     const { id } = this.request.user;
@@ -141,6 +148,114 @@ export class BlogService {
     return {
       pagination: paginationGenerator(count, page, limit),
       blogs,
+    };
+  }
+  async checkExistBlogById(id: number) {
+    const blog = await this.blogRepository.findOneBy({ id });
+    if (!blog) throw new NotFoundException(NotFoundMessage.NotFoundPost);
+    return blog;
+  }
+  async delete(id: number) {
+    await this.checkExistBlogById(id);
+    await this.blogRepository.delete({ id });
+    return {
+      message: PublicMessage.Deleted,
+    };
+  }
+  async update(id: number, blogDto: UpdateBlogDto) {
+    const {
+      title,
+      slug,
+      content,
+      description,
+      image,
+      time_for_study,
+      categories,
+    } = blogDto;
+
+    const blog = await this.checkExistBlogById(id);
+
+    if (title !== undefined) {
+      blog.title = title;
+    }
+
+    if (description !== undefined) {
+      blog.description = description;
+    }
+
+    if (content !== undefined) {
+      blog.content = content;
+    }
+
+    if (image !== undefined) {
+      blog.image = image;
+    }
+
+    if (time_for_study !== undefined) {
+      blog.time_for_study = time_for_study;
+    }
+
+    let slugData: string | null = null;
+
+    if (title !== undefined) {
+      blog.title = title;
+      slugData = title;
+    }
+
+    if (slug !== undefined && slug.trim() !== '') {
+      slugData = slug;
+    }
+
+    if (slugData) {
+      let newSlug = createSlug(slugData);
+
+      const isExist = await this.checkBlogBySlug(newSlug);
+
+      if (isExist && isExist.id !== id) {
+        newSlug += `-${randomId()}`;
+      }
+
+      blog.slug = newSlug;
+    }
+
+    await this.blogRepository.save(blog);
+
+    if (categories !== undefined) {
+      let categoryList: string[];
+
+      if (typeof categories === 'string') {
+        categoryList = categories
+          .split(',')
+          .map((category) => category.trim())
+          .filter(Boolean);
+      } else if (isArray(categories)) {
+        categoryList = categories
+          .map((category) => category.trim())
+          .filter(Boolean);
+      } else {
+        throw new BadRequestException(BadRequestMessage.invalidCategorise);
+      }
+
+      await this.blogCategoryRepository.delete({
+        blogId: blog.id,
+      });
+
+      for (const categoryTitle of categoryList) {
+        let category = await this.categoryService.findOneByTitle(categoryTitle);
+
+        if (!category) {
+          category = await this.categoryService.insertByTitle(categoryTitle);
+        }
+
+        await this.blogCategoryRepository.insert({
+          blogId: blog.id,
+          categoryId: category.id,
+        });
+      }
+    }
+
+    return {
+      message: PublicMessage.Updated,
     };
   }
 }

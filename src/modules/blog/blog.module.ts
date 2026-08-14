@@ -7,11 +7,17 @@ import { BlogEntity } from './entities/blog.entity';
 import { CategoryService } from '../category/category.service';
 import { CategoryEntity } from '../category/entities/category.entity';
 import { BlogCategoryEntity } from './entities/blog-category.entity';
+import { BlogLikeEntity } from './entities/like.entity';
 
 @Module({
   imports: [
     AuthModule,
-    TypeOrmModule.forFeature([BlogEntity, CategoryEntity, BlogCategoryEntity]),
+    TypeOrmModule.forFeature([
+      BlogEntity,
+      CategoryEntity,
+      BlogCategoryEntity,
+      BlogLikeEntity,
+    ]),
   ],
   controllers: [BlogController],
   providers: [BlogService, CategoryService],

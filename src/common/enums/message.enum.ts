@@ -19,6 +19,8 @@ export enum PublicMessage {
   Deleted = 'با موفقیت خذف شد',
   Updated = 'با موفقیت بروز رسانی شد',
   Inserted = 'با موفقیت درج شد',
+  Liek = 'مقاله با موفقیت لایک شد',
+  DisLike = 'لایک شما از مقاله برداشته شد',
 }
 
 export enum NotFoundMessage {

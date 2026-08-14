@@ -46,6 +46,10 @@ export class BlogController {
   ) {
     return this.blogService.blogList(paginationDto, filterDto);
   }
+  @Get('/like/:id')
+  likeToggle(@Param('id', ParseIntPipe) id: number) {
+    return this.blogService.LikeToggle(id);
+  }
   @Delete('/:id')
   delete(@Param('id', ParseIntPipe) id: number) {
     return this.blogService.delete(id);

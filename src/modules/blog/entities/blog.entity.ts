@@ -36,19 +36,25 @@ export class BlogEntity extends BaseEntity {
   authorId: number;
   @ManyToOne(() => UserEntity, (user) => user.blogs, { onDelete: 'CASCADE' })
   author: UserEntity;
-  @OneToMany(() => BlogLikeEntity, (like) => like.blog, { onDelete: 'CASCADE' })
-  likes: BlogLikeEntity;
   @VirtualColumn({
     query: (alias) =>
       `SELECT COUNT(*)::int
      FROM "${EntityName.BlogLikes}"
      WHERE "blogId" = ${alias}.id`,
   })
+  @OneToMany(() => BlogLikeEntity, (like) => like.blog, { onDelete: 'CASCADE' })
+  likes: BlogLikeEntity;
   likeCount: number;
   @OneToMany(() => BlogCategoryEntity, (category) => category.blog, {
     onDelete: 'CASCADE',
   })
   categories: BlogCategoryEntity;
+  @VirtualColumn({
+    query: (alias) =>
+      `SELECT COUNT(*)::int
+     FROM "${EntityName.BlogBookmark}"
+     WHERE "blogId" = ${alias}.id`,
+  })
   @OneToMany(() => BlogBookmarkEntity, (bookmark) => bookmark.blog, {
     onDelete: 'CASCADE',
   })

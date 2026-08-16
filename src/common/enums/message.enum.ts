@@ -21,6 +21,8 @@ export enum PublicMessage {
   Inserted = 'با موفقیت درج شد',
   Liek = 'مقاله با موفقیت لایک شد',
   DisLike = 'لایک شما از مقاله برداشته شد',
+  bokkmark = 'مقاله با موفقیت ذخیره شد',
+  Unbookmark = 'مقاله از لیست ذخیره شده برداشته شده',
 }
 
 export enum NotFoundMessage {

@@ -50,6 +50,10 @@ export class BlogController {
   likeToggle(@Param('id', ParseIntPipe) id: number) {
     return this.blogService.LikeToggle(id);
   }
+  @Get('/bookmark/:id')
+  bookmarkToggle(@Param('id', ParseIntPipe) id: number) {
+    return this.blogService.bookmarkToggle(id);
+  }
   @Delete('/:id')
   delete(@Param('id', ParseIntPipe) id: number) {
     return this.blogService.delete(id);

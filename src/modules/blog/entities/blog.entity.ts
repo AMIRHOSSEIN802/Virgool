@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   UpdateDateColumn,
+  VirtualColumn,
 } from 'typeorm';
 import { BlogStatus } from '../enums/status.enum';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
@@ -37,6 +38,13 @@ export class BlogEntity extends BaseEntity {
   author: UserEntity;
   @OneToMany(() => BlogLikeEntity, (like) => like.blog, { onDelete: 'CASCADE' })
   likes: BlogLikeEntity;
+  @VirtualColumn({
+    query: (alias) =>
+      `SELECT COUNT(*)::int
+     FROM "${EntityName.BlogLikes}"
+     WHERE "blogId" = ${alias}.id`,
+  })
+  likeCount: number;
   @OneToMany(() => BlogCategoryEntity, (category) => category.blog, {
     onDelete: 'CASCADE',
   })

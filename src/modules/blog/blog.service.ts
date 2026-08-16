@@ -28,6 +28,7 @@ import { CategoryService } from '../category/category.service';
 import { BlogCategoryEntity } from './entities/blog-category.entity';
 import { EntityName } from 'src/common/enums/entity.eunm';
 import { BlogLikeEntity } from './entities/like.entity';
+import { BlogBookmarkEntity } from './entities/bookmark.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogService {
@@ -38,6 +39,8 @@ export class BlogService {
     private blogCategoryRepository: Repository<BlogCategoryEntity>,
     @InjectRepository(BlogLikeEntity)
     private blogLikeRepository: Repository<BlogLikeEntity>,
+    @InjectRepository(BlogBookmarkEntity)
+    private blogbookmarkRepository: Repository<BlogBookmarkEntity>,
     @Inject(REQUEST) private request: Request,
     private categoryService: CategoryService,
   ) {}
@@ -133,7 +136,15 @@ export class BlogService {
       .createQueryBuilder(EntityName.blog)
       .leftJoin('blog.categories', 'blogCategory')
       .leftJoin('blogCategory.category', 'category')
-      .addSelect(['blogCategory.id', 'category.title'])
+      .leftJoin('blog.author', 'author')
+      .leftJoin('author.profile', 'profile')
+      .addSelect([
+        'blogCategory.id',
+        'category.title',
+        'author.username',
+        'author.id',
+        'profile.nick_name',
+      ])
       .where(where, { category, search })
       .orderBy('blog.id', 'DESC')
       .skip(skip)
@@ -271,6 +282,25 @@ export class BlogService {
       message = PublicMessage.DisLike;
     } else {
       await this.blogLikeRepository.insert({
+        blogId,
+        userId,
+      });
+    }
+    return { message };
+  }
+  async bookmarkToggle(blogId: number) {
+    const { id: userId } = this.request.user;
+    const blog = await this.checkExistBlogById(blogId);
+    const isbookmark = await this.blogbookmarkRepository.findOneBy({
+      userId,
+      blogId,
+    });
+    let message = PublicMessage.bokkmark;
+    if (isbookmark) {
+      await this.blogbookmarkRepository.delete({ id: isbookmark.id });
+      message = PublicMessage.Unbookmark;
+    } else {
+      await this.blogbookmarkRepository.insert({
         blogId,
         userId,
       });

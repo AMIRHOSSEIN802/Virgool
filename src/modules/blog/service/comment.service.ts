@@ -7,6 +7,11 @@ import { BlogService } from './blog.service';
 import { BlogCommenrtEntity } from '../entities/comment.entity';
 import { PublicMessage } from 'src/common/enums/message.enum';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import {
+  paginationGenerator,
+  paginationSolver,
+} from 'src/common/utils/pagination.util';
 
 @Injectable()
 export class BlogCommentService {
@@ -45,6 +50,35 @@ export class BlogCommentService {
 
     return {
       message: PublicMessage.CreatedComment,
+    };
+  }
+  async find(paginationDto: PaginationDto) {
+    const { limit, page, skip } = paginationSolver(paginationDto);
+    const [comments, count] = await this.blogCommentRepository.findAndCount({
+      where: {},
+      relations: {
+        blog: true,
+        user: { profile: true },
+      },
+      select: {
+        blog: {
+          title: true,
+        },
+        user: {
+          username: true,
+          profile: {
+            nick_name: true,
+          },
+        },
+      },
+
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
+    });
+    return {
+      pagination: paginationGenerator(count, page, limit),
+      comments,
     };
   }
 }

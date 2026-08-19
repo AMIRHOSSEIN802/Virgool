@@ -1,9 +1,9 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../../auth/guards/auth.guard';
-import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
 import { CreateCommentDto } from '../dto/comment.dto';
 import { BlogCommentService } from '../service/comment.service';
+import type { Request } from 'express';
 
 @Controller('blog-comment')
 @ApiTags('Blog')
@@ -12,9 +12,8 @@ import { BlogCommentService } from '../service/comment.service';
 export class BlogCommentController {
   constructor(private readonly blogCommentService: BlogCommentService) {}
 
-  @Post('/')
-  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
-  create(@Body() commentDto: CreateCommentDto) {
-    return this.blogCommentService.create(commentDto);
+  @Post()
+  create(@Body() commentDto: CreateCommentDto, @Req() req: Request) {
+    return this.blogCommentService.create(commentDto, req.user);
   }
 }

@@ -9,8 +9,9 @@ import {
   OneToMany,
 } from 'typeorm';
 import { BlogEntity } from './blog.entity';
+import { EntityName } from 'src/common/enums/entity.eunm';
 
-@Entity()
+@Entity(EntityName.BlogComments)
 export class BlogCommenrtEntity extends BaseEntity {
   @Column()
   text: string;

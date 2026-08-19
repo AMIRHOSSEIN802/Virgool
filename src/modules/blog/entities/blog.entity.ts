@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
   VirtualColumn,
 } from 'typeorm';
+
 import { BlogStatus } from '../enums/status.enum';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { BlogLikeEntity } from './like.entity';
@@ -20,49 +21,89 @@ import { BlogCategoryEntity } from './blog-category.entity';
 export class BlogEntity extends BaseEntity {
   @Column()
   title: string;
+
   @Column()
   description: string;
+
   @Column()
   content: string;
+
   @Column({ nullable: true })
   image: string;
+
   @Column({ unique: true })
   slug: string;
+
   @Column()
   time_for_study: string;
+
   @Column({ default: BlogStatus.Draft })
   status: string;
+
   @Column()
   authorId: number;
-  @ManyToOne(() => UserEntity, (user) => user.blogs, { onDelete: 'CASCADE' })
+
+  @ManyToOne(() => UserEntity, (user) => user.blogs, {
+    onDelete: 'CASCADE',
+  })
   author: UserEntity;
+
+  // ==================== Likes ====================
+
+  @OneToMany(() => BlogLikeEntity, (like) => like.blog, {
+    onDelete: 'CASCADE',
+  })
+  likes: BlogLikeEntity[];
+
   @VirtualColumn({
     query: (alias) =>
       `SELECT COUNT(*)::int
-     FROM "${EntityName.BlogLikes}"
-     WHERE "blogId" = ${alias}.id`,
+       FROM "${EntityName.BlogLikes}"
+       WHERE "blogId" = ${alias}.id`,
   })
-  @OneToMany(() => BlogLikeEntity, (like) => like.blog, { onDelete: 'CASCADE' })
-  likes: BlogLikeEntity;
   likeCount: number;
+
+  // ==================== Categories ====================
+
   @OneToMany(() => BlogCategoryEntity, (category) => category.blog, {
     onDelete: 'CASCADE',
   })
-  categories: BlogCategoryEntity;
-  @VirtualColumn({
-    query: (alias) =>
-      `SELECT COUNT(*)::int
-     FROM "${EntityName.BlogBookmark}"
-     WHERE "blogId" = ${alias}.id`,
-  })
+  categories: BlogCategoryEntity[];
+
+  // ==================== Bookmarks ====================
+
   @OneToMany(() => BlogBookmarkEntity, (bookmark) => bookmark.blog, {
     onDelete: 'CASCADE',
   })
   bookmarks: BlogBookmarkEntity[];
+
+  @VirtualColumn({
+    query: (alias) =>
+      `SELECT COUNT(*)::int
+       FROM "${EntityName.BlogBookmark}"
+       WHERE "blogId" = ${alias}.id`,
+  })
+  bookmarkCount: number;
+
+  // ==================== Comments ====================
+
   @OneToMany(() => BlogCommenrtEntity, (comment) => comment.blog)
   comments: BlogCommenrtEntity[];
+
+  @VirtualColumn({
+    query: (alias) =>
+      `SELECT COUNT(*)::int
+       FROM "${EntityName.BlogComments}"
+       WHERE "blogId" = ${alias}.id
+       AND "accepted" = true`,
+  })
+  commentCount: number;
+
+  // ==================== Dates ====================
+
   @CreateDateColumn()
   created_at: Date;
+
   @UpdateDateColumn()
   updated_at: Date;
 }

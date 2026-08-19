@@ -1,11 +1,20 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BlogEntity } from '../entities/blog.entity';
 import { Repository } from 'typeorm';
 import { CreateCommentDto } from '../dto/comment.dto';
 import { BlogService } from './blog.service';
 import { BlogCommenrtEntity } from '../entities/comment.entity';
-import { PublicMessage } from 'src/common/enums/message.enum';
+import {
+  BadRequestMessage,
+  NotFoundMessage,
+  PublicMessage,
+} from 'src/common/enums/message.enum';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import {
@@ -79,6 +88,31 @@ export class BlogCommentService {
     return {
       pagination: paginationGenerator(count, page, limit),
       comments,
+    };
+  }
+  async checkExistCommentById(id: number) {
+    const comment = await this.blogCommentRepository.findOneBy({ id });
+    if (!comment) throw new BadRequestException(NotFoundMessage.NotFound);
+    return comment;
+  }
+  async accept(id: number) {
+    const comment = await this.checkExistCommentById(id);
+    if (comment.accepted)
+      throw new BadRequestException(BadRequestMessage.AlreadyAccepted);
+    comment.accepted = true;
+    await this.blogCommentRepository.save(comment);
+    return {
+      message: PublicMessage.Updated,
+    };
+  }
+  async reject(id: number) {
+    const comment = await this.checkExistCommentById(id);
+    if (!comment.accepted)
+      throw new BadRequestException(BadRequestMessage.AlreadyRejected);
+    comment.accepted = false;
+    await this.blogCommentRepository.save(comment);
+    return {
+      message: PublicMessage.Updated,
     };
   }
 }

@@ -3,6 +3,8 @@ export enum BadRequestMessage {
   InValidReqisterDate = 'اطلاعات ارسال شده برای ثبت نام صحیح نمی باشد',
   SomthingWrong = 'خطایی پیش امده مجددا تلاش کنید',
   invalidCategorise = 'دسته بندی عا را به درستی وارد کنید ',
+  AlreadyAccepted = 'کامنت شما قبلا تایید شده است',
+  AlreadyRejected = 'کامنت شما قبلا رد شده است',
 }
 export enum AuthMessage {
   NotFoundAccount = 'حساب کاربری یافت نشد',

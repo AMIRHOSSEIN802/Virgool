@@ -2,7 +2,10 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  ParseIntPipe,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -30,5 +33,13 @@ export class BlogCommentController {
   @Pagination()
   find(@Query() paginationDto: PaginationDto) {
     return this.blogCommentService.find(paginationDto);
+  }
+  @Put('/accept/:id')
+  accept(@Param('id', ParseIntPipe) id: number) {
+    return this.blogCommentService.accept(id);
+  }
+  @Put('/reject/:id')
+  reject(@Param('id', ParseIntPipe) id: number) {
+    return this.blogCommentService.reject(id);
   }
 }

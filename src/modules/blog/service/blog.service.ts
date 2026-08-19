@@ -6,13 +6,10 @@ import {
   Scope,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BlogEntity } from './entities/blog.entity';
 import { Repository } from 'typeorm';
-import { CreateBlogDto, FilterBlogDto, UpdateBlogDto } from './dto/blog.dto';
 import { createSlug, randomId } from 'src/common/utils/functions.util';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
-import { BlogStatus } from './enums/status.enum';
 import {
   BadRequestMessage,
   NotFoundMessage,
@@ -24,11 +21,14 @@ import {
   paginationSolver,
 } from 'src/common/utils/pagination.util';
 import { isArray } from 'class-validator';
-import { CategoryService } from '../category/category.service';
-import { BlogCategoryEntity } from './entities/blog-category.entity';
 import { EntityName } from 'src/common/enums/entity.eunm';
-import { BlogLikeEntity } from './entities/like.entity';
-import { BlogBookmarkEntity } from './entities/bookmark.entity';
+import { BlogEntity } from '../entities/blog.entity';
+import { CreateBlogDto, FilterBlogDto, UpdateBlogDto } from '../dto/blog.dto';
+import { BlogStatus } from '../enums/status.enum';
+import { CategoryService } from 'src/modules/category/category.service';
+import { BlogCategoryEntity } from '../entities/blog-category.entity';
+import { BlogLikeEntity } from '../entities/like.entity';
+import { BlogBookmarkEntity } from '../entities/bookmark.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogService {
@@ -274,7 +274,7 @@ export class BlogService {
   }
   async LikeToggle(blogId: number) {
     const { id: userId } = this.request.user;
-    const blog = await this.checkExistBlogById(blogId);
+    await this.checkExistBlogById(blogId);
     const isLiked = await this.blogLikeRepository.findOneBy({ userId, blogId });
     let message = PublicMessage.Liek;
     if (isLiked) {
@@ -290,7 +290,7 @@ export class BlogService {
   }
   async bookmarkToggle(blogId: number) {
     const { id: userId } = this.request.user;
-    const blog = await this.checkExistBlogById(blogId);
+    await this.checkExistBlogById(blogId);
     const isbookmark = await this.blogbookmarkRepository.findOneBy({
       userId,
       blogId,

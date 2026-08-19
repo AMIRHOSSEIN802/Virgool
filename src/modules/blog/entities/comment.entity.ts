@@ -5,7 +5,6 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
-  ManyToMany,
   ManyToOne,
   OneToMany,
 } from 'typeorm';
@@ -21,22 +20,25 @@ export class BlogCommenrtEntity extends BaseEntity {
   blogId: number;
   @Column()
   userId: number;
-  @Column()
-  parentId: number;
+  @Column({ nullable: true })
+  parentId: number | null;
   @ManyToOne(() => UserEntity, (user) => user.blog_commets, {
     onDelete: 'CASCADE',
   })
   user: UserEntity;
-  @ManyToMany(() => BlogEntity, (blog) => blog.comments, {
+  @ManyToOne(() => BlogEntity, (blog) => blog.comments, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'blogId' })
   blog: BlogEntity;
-  @ManyToMany(() => BlogCommenrtEntity, (comment) => comment.children, {
+  @ManyToOne(() => BlogCommenrtEntity, (comment) => comment.children, {
+    nullable: true,
     onDelete: 'CASCADE',
   })
-  parent: BlogCommenrtEntity;
+  @JoinColumn({ name: 'parentId' })
+  parent: BlogCommenrtEntity | null;
+
   @OneToMany(() => BlogCommenrtEntity, (comment) => comment.parent)
-  @JoinColumn({ name: 'parent' })
   children: BlogCommenrtEntity[];
   @CreateDateColumn()
   created_at: Date;

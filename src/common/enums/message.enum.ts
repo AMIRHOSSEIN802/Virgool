@@ -23,6 +23,7 @@ export enum PublicMessage {
   DisLike = 'لایک شما از مقاله برداشته شد',
   bokkmark = 'مقاله با موفقیت ذخیره شد',
   Unbookmark = 'مقاله از لیست ذخیره شده برداشته شده',
+  CreatedComment = 'کامنت شما با موفقیت ارسال شد',
 }
 
 export enum NotFoundMessage {

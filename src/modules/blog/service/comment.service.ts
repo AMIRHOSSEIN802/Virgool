@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BlogEntity } from '../entities/blog.entity';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { CreateCommentDto } from '../dto/comment.dto';
 import { BlogService } from './blog.service';
 import { BlogCommenrtEntity } from '../entities/comment.entity';
@@ -31,6 +31,7 @@ export class BlogCommentService {
     @InjectRepository(BlogCommenrtEntity)
     private blogCommentRepository: Repository<BlogCommenrtEntity>,
 
+    @Inject(forwardRef(() => BlogService))
     @Inject(forwardRef(() => BlogService))
     private blogService: BlogService,
   ) {}
@@ -81,6 +82,61 @@ export class BlogCommentService {
         },
       },
 
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
+    });
+    return {
+      pagination: paginationGenerator(count, page, limit),
+      comments,
+    };
+  }
+  async findCommentsOfBlog(blogId: number, paginationDto: PaginationDto) {
+    const { limit, page, skip } = paginationSolver(paginationDto);
+    const [comments, count] = await this.blogCommentRepository.findAndCount({
+      where: {
+        blogId,
+        parentId: IsNull(),
+      },
+      relations: {
+        user: { profile: true },
+        children: {
+          user: { profile: true },
+          children: {
+            user: { profile: true },
+          },
+        },
+      },
+      select: {
+        user: {
+          username: true,
+          profile: {
+            nick_name: true,
+          },
+        },
+        children: {
+          text: true,
+          created_at: true,
+          parentId: true,
+          user: {
+            username: true,
+            profile: {
+              nick_name: true,
+            },
+          },
+          children: {
+            text: true,
+            created_at: true,
+            parentId: true,
+            user: {
+              username: true,
+              profile: {
+                nick_name: true,
+              },
+            },
+          },
+        },
+      },
       skip,
       take: limit,
       order: { id: 'DESC' },

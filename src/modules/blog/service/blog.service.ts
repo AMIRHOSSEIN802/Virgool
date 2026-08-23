@@ -29,6 +29,7 @@ import { CategoryService } from 'src/modules/category/category.service';
 import { BlogCategoryEntity } from '../entities/blog-category.entity';
 import { BlogLikeEntity } from '../entities/like.entity';
 import { BlogBookmarkEntity } from '../entities/bookmark.entity';
+import { BlogCommentService } from './comment.service';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogService {
@@ -43,6 +44,7 @@ export class BlogService {
     private blogbookmarkRepository: Repository<BlogBookmarkEntity>,
     @Inject(REQUEST) private request: Request,
     private categoryService: CategoryService,
+    private blogCommentService: BlogCommentService,
   ) {}
 
   async create(blogDto: CreateBlogDto) {
@@ -306,5 +308,69 @@ export class BlogService {
       });
     }
     return { message };
+  }
+  async findOneBySlug(slug: string, paginationDto: PaginationDto) {
+    const userId = this.request?.user?.id;
+
+    const blog = await this.blogRepository
+      .createQueryBuilder(EntityName.blog)
+
+      .leftJoin('blog.categories', 'blogCategory')
+      .leftJoin('blogCategory.category', 'category')
+
+      .leftJoin('blog.author', 'author')
+      .leftJoin('author.profile', 'profile')
+
+      .addSelect([
+        'blogCategory.id',
+        'category.title',
+
+        'author.username',
+        'author.id',
+
+        'profile.nick_name',
+      ])
+
+      // گرفتن کامنت‌های بلاگ
+      .leftJoinAndSelect('blog.comments', 'comments')
+
+      // گرفتن کاربر کامنت
+      // .leftJoinAndSelect('comments.user', 'commentUser')
+
+      // گرفتن پروفایل کاربر کامنت
+      // .leftJoinAndSelect('commentUser.profile', 'commentProfile')
+
+      .where({ slug })
+
+      .andWhere('(comments.id IS NULL OR comments.accepted = :accepted)', {
+        accepted: true,
+      })
+
+      .getOne();
+
+    if (!blog) {
+      throw new NotFoundException(NotFoundMessage.NotFoundPost);
+    }
+    const commentsData = await this.blogCommentService.findCommentsOfBlog(
+      blog.id,
+      paginationDto,
+    );
+
+    const isLike = !!(await this.blogLikeRepository.findOneBy({
+      userId,
+      blogId: blog.id,
+    }));
+
+    const isBookmarked = !!(await this.blogbookmarkRepository.findOneBy({
+      userId,
+      blogId: blog.id,
+    }));
+
+    return {
+      blog,
+      isLike,
+      isBookmarked,
+      commentsData,
+    };
   }
 }

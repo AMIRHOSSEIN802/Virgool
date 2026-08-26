@@ -356,19 +356,22 @@ export class BlogService {
       paginationDto,
     );
 
-    const isLike = !!(await this.blogLikeRepository.findOneBy({
-      userId,
-      blogId: blog.id,
-    }));
-
-    const isBookmarked = !!(await this.blogbookmarkRepository.findOneBy({
-      userId,
-      blogId: blog.id,
-    }));
+    let isLiked = false;
+    let isBookmarked = false;
+    if (userId && !isNaN(userId) && userId > 0) {
+      isLiked = !!(await this.blogLikeRepository.findOneBy({
+        userId,
+        blogId: blog.id,
+      }));
+      isBookmarked = !!(await this.blogbookmarkRepository.findOneBy({
+        userId,
+        blogId: blog.id,
+      }));
+    }
 
     return {
       blog,
-      isLike,
+      isLiked,
       isBookmarked,
       commentsData,
     };

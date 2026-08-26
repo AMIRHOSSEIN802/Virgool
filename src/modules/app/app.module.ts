@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
@@ -7,6 +7,7 @@ import { UserModule } from '../user/user.module';
 import { AuthModule } from '../auth/auth.module';
 import { CategoryModule } from '../category/category.module';
 import { BlogModule } from '../blog/blog.module';
+import { AddUserToReqWOV } from 'src/common/middleware/addUserToReqWOV.middleware';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -22,4 +23,8 @@ import { BlogModule } from '../blog/blog.module';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(AddUserToReqWOV).forRoutes('blog/by-slug/:slug');
+  }
+}

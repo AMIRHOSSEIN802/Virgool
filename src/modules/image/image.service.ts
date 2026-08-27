@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { CreateImageDto } from './dto/create-image.dto';
-import { UpdateImageDto } from './dto/update-image.dto';
+import { ImageDto } from './dto/create-image.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { ImageEntity } from './entities/image.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class ImageService {
-  create(createImageDto: CreateImageDto) {
+  constructor(
+    @InjectRepository(ImageEntity)
+    private imageRepository: Repository<ImageEntity>,
+  ) {}
+  create(ImageDto: ImageDto) {
     return 'This action adds a new image';
   }
 
@@ -14,10 +20,6 @@ export class ImageService {
 
   findOne(id: number) {
     return `This action returns a #${id} image`;
-  }
-
-  update(id: number, updateImageDto: UpdateImageDto) {
-    return `This action updates a #${id} image`;
   }
 
   remove(id: number) {

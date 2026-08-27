@@ -15,6 +15,7 @@ import { BlogEntity } from 'src/modules/blog/entities/blog.entity';
 import { BlogLikeEntity } from 'src/modules/blog/entities/like.entity';
 import { BlogBookmarkEntity } from 'src/modules/blog/entities/bookmark.entity';
 import { BlogCommenrtEntity } from 'src/modules/blog/entities/comment.entity';
+import { ImageEntity } from 'src/modules/image/entities/image.entity';
 
 @Entity(EntityName.User)
 export class UserEntity extends BaseEntity {
@@ -58,6 +59,8 @@ export class UserEntity extends BaseEntity {
   blog_bookmaeks: BlogBookmarkEntity[];
   @OneToMany(() => BlogCommenrtEntity, (comment) => comment.user)
   blog_commets: BlogCommenrtEntity[];
+  @OneToMany(() => ImageEntity, (image) => image.user)
+  images: ImageEntity[];
   @CreateDateColumn()
   created_at: Date;
   @UpdateDateColumn()

@@ -8,6 +8,7 @@ import { AuthModule } from '../auth/auth.module';
 import { CategoryModule } from '../category/category.module';
 import { BlogModule } from '../blog/blog.module';
 import { AddUserToReqWOV } from 'src/common/middleware/addUserToReqWOV.middleware';
+import { ImageModule } from '../image/image.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -19,6 +20,7 @@ import { AddUserToReqWOV } from 'src/common/middleware/addUserToReqWOV.middlewar
     UserModule,
     CategoryModule,
     BlogModule,
+    ImageModule,
   ],
   controllers: [],
   providers: [],

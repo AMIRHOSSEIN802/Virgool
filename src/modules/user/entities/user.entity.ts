@@ -16,6 +16,7 @@ import { BlogLikeEntity } from 'src/modules/blog/entities/like.entity';
 import { BlogBookmarkEntity } from 'src/modules/blog/entities/bookmark.entity';
 import { BlogCommenrtEntity } from 'src/modules/blog/entities/comment.entity';
 import { ImageEntity } from 'src/modules/image/entities/image.entity';
+import { Roles } from 'src/common/enums/role.eunm';
 
 @Entity(EntityName.User)
 export class UserEntity extends BaseEntity {
@@ -35,6 +36,8 @@ export class UserEntity extends BaseEntity {
     nullable: true,
   })
   new_Phone: string | null;
+  @Column({ type: 'enum', enum: Roles, default: Roles.User })
+  role: Roles;
   @Column({ nullable: true, default: false })
   verify_email: boolean;
   @Column({ nullable: true, default: false })

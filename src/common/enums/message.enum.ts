@@ -26,6 +26,8 @@ export enum PublicMessage {
   bokkmark = 'مقاله با موفقیت ذخیره شد',
   Unbookmark = 'مقاله از لیست ذخیره شده برداشته شده',
   CreatedComment = 'کامنت شما با موفقیت ارسال شد',
+  Followed = 'با موفقیت دنبال شد',
+  UnFollow = 'از لیست دنبال شوندگان حذف شد',
 }
 
 export enum NotFoundMessage {

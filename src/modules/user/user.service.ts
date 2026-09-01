@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  NotFoundException,
   Scope,
 } from '@nestjs/common';
 import { ProfileDto } from './dto/profile.dto';
@@ -29,6 +30,7 @@ import { TokensService } from '../auth/tokens.service';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { OtpEntity } from './entities/otp.entity';
 import { AuthMethod } from '../auth/enums/method.enums';
+import { FollowEntity } from './entities/follow.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class UserService {
@@ -37,6 +39,8 @@ export class UserService {
     private userRepository: Repository<UserEntity>,
     @InjectRepository(ProfileEntity)
     private profileRepository: Repository<ProfileEntity>,
+    @InjectRepository(FollowEntity)
+    private followRepository: Repository<FollowEntity>,
     @Inject(REQUEST) private request: Request,
     private authService: AuthService,
     private tokenService: TokensService,
@@ -101,6 +105,11 @@ export class UserService {
     };
   }
 
+  find() {
+    return this.userRepository.find({
+      where: {},
+    });
+  }
   profile() {
     const { id } = this.request.user;
     return this.userRepository.findOne({
@@ -252,6 +261,26 @@ export class UserService {
       throw new BadRequestException(AuthMessage.ExiredCode);
     if (otp.code !== code) throw new BadRequestException(AuthMessage.TryAgain);
     return otp;
+  }
+
+  async followToggle(followingId: number) {
+    const { id: userId } = this.request.user;
+    const following = await this.userRepository.findOneBy({ id: followingId });
+    if (!following) throw new NotFoundException(NotFoundMessage.NotFoundUser);
+    const isFollowing = await this.followRepository.findOneBy({
+      followingId,
+      followerId: userId,
+    });
+    let message = PublicMessage.Followed;
+    if (isFollowing) {
+      message = PublicMessage.UnFollow;
+      await this.followRepository.remove(isFollowing);
+    } else {
+      await this.followRepository.insert({ followingId, followerId: userId });
+    }
+    return {
+      message,
+    };
   }
 
   create(createUserDto: CreateUserDto) {

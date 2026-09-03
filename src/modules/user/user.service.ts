@@ -15,8 +15,6 @@ import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
 import { isDate } from 'class-validator';
 import { Gender } from './enums/gender.enum';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import {
   AuthMessage,
   BadRequestMessage,
@@ -374,6 +372,9 @@ export class UserService {
 
   async followToggle(followingId: number) {
     const { id: userId } = this.request.user;
+    if (followingId === userId) {
+      throw new BadRequestException(BadRequestMessage.cannotfollow);
+    }
     const following = await this.userRepository.findOneBy({ id: followingId });
     if (!following) throw new NotFoundException(NotFoundMessage.NotFoundUser);
     const isFollowing = await this.followRepository.findOneBy({
@@ -390,25 +391,5 @@ export class UserService {
     return {
       message,
     };
-  }
-
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
-  }
-
-  findAll() {
-    return `This action returns all user`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
-  }
-
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
   }
 }

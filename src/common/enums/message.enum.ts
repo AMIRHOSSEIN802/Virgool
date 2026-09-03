@@ -5,6 +5,7 @@ export enum BadRequestMessage {
   invalidCategorise = 'دسته بندی عا را به درستی وارد کنید ',
   AlreadyAccepted = 'کامنت شما قبلا تایید شده است',
   AlreadyRejected = 'کامنت شما قبلا رد شده است',
+  cannotfollow = 'نمیتونید خودتون را دنبال کنید',
 }
 export enum AuthMessage {
   NotFoundAccount = 'حساب کاربری یافت نشد',

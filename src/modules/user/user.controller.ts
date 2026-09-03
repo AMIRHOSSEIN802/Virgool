@@ -29,10 +29,12 @@ import { UploadedOptionalFiles } from 'src/common/decorators/upload-file-decorat
 import type { Response } from 'express';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { CookiesOptionsToken } from 'src/common/utils/cookie.util';
-import { CheckOtpDto } from '../auth/dto/auth.dto';
+import { CheckOtpDto, UserBlockDto } from '../auth/dto/auth.dto';
 import { PublicMessage } from 'src/common/enums/message.enum';
 import { Pagination } from 'src/common/decorators/pagination.decorator';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { CanAccess } from 'src/common/decorators/role.dexorator';
+import { Roles } from 'src/common/enums/role.eunm';
 
 @Controller('user')
 @ApiBearerAuth('Authorization')
@@ -125,6 +127,13 @@ export class UserController {
   @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   async verifyphone(@Body() otpDto: CheckOtpDto) {
     return this.userService.verifyPhone(otpDto.code);
+  }
+
+  @Post('/block')
+  @CanAccess(Roles.Admin)
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
+  async block(@Body() blockDto: UserBlockDto) {
+    return this.userService.blockToggle(blockDto);
   }
 
   @Patch('/change-username')

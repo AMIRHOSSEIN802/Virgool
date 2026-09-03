@@ -14,6 +14,7 @@ export enum AuthMessage {
   ExiredCode = 'کد تایید منقضی شده مجددا تلاش کنید',
   LoginAgin = 'مجددا وارد حساب کاربری خود شوید',
   LoginIsRequired = 'وارد حساب کاربری خود شوید',
+  Blocked = 'حساب کاربری شما مسدود می باشد، لطفا با پشتیبانی در ارتباط باشید ',
 }
 export enum PublicMessage {
   SendOtp = 'کد با موفقیت ارسال شد',
@@ -29,6 +30,8 @@ export enum PublicMessage {
   CreatedComment = 'کامنت شما با موفقیت ارسال شد',
   Followed = 'با موفقیت دنبال شد',
   UnFollow = 'از لیست دنبال شوندگان حذف شد',
+  Blocked = 'حساب کاربری با موفقیت مسدود شد',
+  UnBlocked = 'حساب کاربری از حالت مسدود خارج شد',
 }
 
 export enum NotFoundMessage {

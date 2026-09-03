@@ -34,6 +34,8 @@ import {
   paginationSolver,
 } from 'src/common/utils/pagination.util';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { UserBlockDto } from '../auth/dto/auth.dto';
+import { UserStatus } from './enums/status.enum';
 
 interface ProfileRaw {
   followersCount: string;
@@ -387,6 +389,27 @@ export class UserService {
       await this.followRepository.remove(isFollowing);
     } else {
       await this.followRepository.insert({ followingId, followerId: userId });
+    }
+    return {
+      message,
+    };
+  }
+  async blockToggle(blockDto: UserBlockDto) {
+    const { userId } = blockDto;
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) throw new NotFoundException(NotFoundMessage.NotFoundUser);
+    let message = PublicMessage.Blocked;
+    if (user.status === UserStatus.Block) {
+      message = PublicMessage.UnBlocked;
+      await this.userRepository.update(
+        { id: userId },
+        { status: UserStatus.Active },
+      );
+    } else {
+      await this.userRepository.update(
+        { id: userId },
+        { status: UserStatus.Block },
+      );
     }
     return {
       message,

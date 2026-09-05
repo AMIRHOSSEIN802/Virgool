@@ -14,5 +14,8 @@ namespace NodeJS {
     ACCESS_TOKEN_SECRET: string;
     EMAIL_TOKEN_SECRET: string;
     PHONE_TOKEN_SECRET: string;
+    //GOOGLE
+    GOOGLE_CLIENT_ID: string;
+    GOOGLE_SECRET_ID: string;
   }
 }

@@ -24,9 +24,10 @@ import { OtpEntity } from '../user/entities/otp.entity';
 import { TokensService } from './tokens.service';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import type { Request, Response } from 'express';
-import { AuthResponse } from './types/response';
+import { AuthResponse, GoogleUser } from './types/response';
 import { REQUEST } from '@nestjs/core';
 import { CookiesOptionsToken } from 'src/common/utils/cookie.util';
+import { randomId } from 'src/common/utils/functions.util';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AuthService {
@@ -207,5 +208,32 @@ export class AuthService {
       default:
         throw new UnauthorizedException('username data is not valid');
     }
+  }
+
+  async googleAuth(userData: GoogleUser) {
+    const { email, firstName, lastName } = userData;
+    let token: string;
+    let user = await this.userRepository.findOneBy({ email });
+    if (user) {
+      token = this.tokenService.createAccessToken({ userId: user.id });
+    } else {
+      user = this.userRepository.create({
+        email,
+        verify_email: true,
+        username: email.split('@')['0'] + randomId(),
+      });
+      user = await this.userRepository.save(user);
+      let profile = this.profileRepository.create({
+        userId: user.id,
+        nick_name: `${firstName} ${lastName}`,
+      });
+      profile = await this.profileRepository.save(profile);
+      user.profileId = profile.id;
+      await this.userRepository.save(user);
+      token = this.tokenService.createAccessToken({ userId: user.id });
+    }
+    return {
+      token,
+    };
   }
 }

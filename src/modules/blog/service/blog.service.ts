@@ -6,7 +6,7 @@ import {
   Scope,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { createSlug, randomId } from 'src/common/utils/functions.util';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
@@ -45,6 +45,7 @@ export class BlogService {
     @Inject(REQUEST) private request: Request,
     private categoryService: CategoryService,
     private blogCommentService: BlogCommentService,
+    private dataSource: DataSource,
   ) {}
 
   async create(blogDto: CreateBlogDto) {
@@ -334,12 +335,6 @@ export class BlogService {
       // گرفتن کامنت‌های بلاگ
       .leftJoinAndSelect('blog.comments', 'comments')
 
-      // گرفتن کاربر کامنت
-      // .leftJoinAndSelect('comments.user', 'commentUser')
-
-      // گرفتن پروفایل کاربر کامنت
-      // .leftJoinAndSelect('commentUser.profile', 'commentProfile')
-
       .where({ slug })
 
       .andWhere('(comments.id IS NULL OR comments.accepted = :accepted)', {
@@ -351,29 +346,123 @@ export class BlogService {
     if (!blog) {
       throw new NotFoundException(NotFoundMessage.NotFoundPost);
     }
+
+    // گرفتن کامنت‌های بلاگ
     const commentsData = await this.blogCommentService.findCommentsOfBlog(
       blog.id,
       paginationDto,
     );
 
+    // بررسی Like و Bookmark
     let isLiked = false;
     let isBookmarked = false;
+
     if (userId && !isNaN(userId) && userId > 0) {
       isLiked = !!(await this.blogLikeRepository.findOneBy({
         userId,
         blogId: blog.id,
       }));
+
       isBookmarked = !!(await this.blogbookmarkRepository.findOneBy({
         userId,
         blogId: blog.id,
       }));
     }
 
+    // گرفتن 3 مقاله تصادفی پیشنهادی
+    type SuggestedBlog = {
+      id: number;
+      slug: string;
+      title: string;
+      description: string;
+      time_for_study: number;
+      image: string | null;
+      author: {
+        username: string;
+        author_name: string | null;
+        image: string | null;
+      };
+      categories: string[];
+      likes: number;
+      bookmarks: number;
+      comments: number;
+    };
+
+    const suggestBlogs = await this.dataSource.query<SuggestedBlog[]>(
+      `
+      SELECT
+        blog.id,
+        blog.slug,
+        blog.title,
+        blog.description,
+        blog.time_for_study,
+        blog.image,
+
+        json_build_object(
+          'username', u.username,
+          'author_name', p.nick_name,
+          'image', p.image_profile
+        ) AS author,
+
+        COALESCE(
+          array_agg(DISTINCT cat.title)
+          FILTER (WHERE cat.id IS NOT NULL),
+          '{}'
+        ) AS categories,
+
+        (
+          SELECT COUNT(*)::int
+          FROM blog_like
+          WHERE blog_like."blogId" = blog.id
+        ) AS likes,
+
+        (
+          SELECT COUNT(*)::int
+          FROM blog_bookmark
+          WHERE blog_bookmark."blogId" = blog.id
+        ) AS bookmarks,
+
+        (
+          SELECT COUNT(*)::int
+          FROM blog_comments
+          WHERE blog_comments."blogId" = blog.id
+        ) AS comments
+
+      FROM blog
+
+      LEFT JOIN public.user u
+        ON blog."authorId" = u.id
+
+      LEFT JOIN profile p
+        ON p."userId" = u.id
+
+      LEFT JOIN blog_category bc
+        ON blog.id = bc."blogId"
+
+      LEFT JOIN category cat
+        ON bc."categoryId" = cat.id
+
+      -- مقاله‌ای که الان کاربر مشاهده می‌کند پیشنهاد نشود
+      WHERE blog.id != $1
+
+      GROUP BY
+        blog.id,
+        u.username,
+        p.nick_name,
+        p.image_profile
+
+      ORDER BY RANDOM()
+      LIMIT 3
+    `,
+      [blog.id],
+    );
+
     return {
       blog,
       isLiked,
       isBookmarked,
       commentsData,
+      suggestBlogs,
     };
   }
 }

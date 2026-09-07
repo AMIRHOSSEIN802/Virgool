@@ -55,6 +55,7 @@ export class BlogController {
   ) {
     return this.blogService.findOneBySlug(slug, paginationDto);
   }
+  @Get('/like/:id')
   likeToggle(@Param('id', ParseIntPipe) id: number) {
     return this.blogService.LikeToggle(id);
   }

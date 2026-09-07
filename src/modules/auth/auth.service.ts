@@ -68,6 +68,8 @@ export class AuthService {
     }
     const otp = await this.saveOtp(user.id, method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
+    console.log(otp.code);
+
     return {
       token,
       code: otp.code,

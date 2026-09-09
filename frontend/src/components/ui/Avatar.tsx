@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { getImageUrl } from '@/lib/constants';
 
 interface AvatarProps {
@@ -8,6 +9,13 @@ interface AvatarProps {
 }
 
 const sizes = {
+  sm: 32,
+  md: 40,
+  lg: 56,
+  xl: 80,
+};
+
+const sizeClasses = {
   sm: 'h-8 w-8 text-xs',
   md: 'h-10 w-10 text-sm',
   lg: 'h-14 w-14 text-lg',
@@ -21,17 +29,19 @@ export default function Avatar({ src, alt = '', size = 'md', fallback }: AvatarP
 
   if (src) {
     return (
-      <img
+      <Image
         src={getImageUrl(src)}
         alt={alt}
-        className={`${sizes[size]} rounded-full object-cover ring-2 ring-[var(--surface)]`}
+        width={sizes[size]}
+        height={sizes[size]}
+        className={`${sizeClasses[size]} rounded-full object-cover ring-2 ring-[var(--surface)]`}
       />
     );
   }
 
   return (
     <div
-      className={`${sizes[size]} rounded-full bg-[var(--primary-light)] text-[var(--primary)] flex items-center justify-center font-semibold ring-2 ring-[var(--surface)]`}
+      className={`${sizeClasses[size]} rounded-full bg-[var(--primary-light)] text-[var(--primary)] flex items-center justify-center font-semibold ring-2 ring-[var(--surface)]`}
     >
       {initials || '?'}
     </div>

@@ -21,7 +21,11 @@ export class ProfileEntity extends BaseEntity {
   linkedin_profile: string;
   @Column({ nullable: true })
   x_profile: string;
-  @Column()
+  /**
+   * One profile per user — the unique index is enforced at the DB level so
+   * concurrent registration/retries can never create a second Profile row.
+   */
+  @Column({ unique: true })
   userId: number;
   @OneToOne(() => UserEntity, (user) => user.profile, { onDelete: 'CASCADE' })
   user: UserEntity;

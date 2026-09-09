@@ -1,5 +1,5 @@
 interface LoadingSkeletonProps {
-  type?: 'card' | 'list' | 'profile';
+  type?: 'card' | 'list' | 'profile' | 'article';
 }
 
 export default function LoadingSkeleton({ type = 'card' }: LoadingSkeletonProps) {
@@ -36,6 +36,26 @@ export default function LoadingSkeleton({ type = 'card' }: LoadingSkeletonProps)
             <div className="h-4 rounded w-28" style={{ background: bg }} />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (type === 'article') {
+    return (
+      <div className="space-y-4 animate-pulse max-w-3xl">
+        <div className="h-8 rounded w-3/4" style={{ background: bg }} />
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full" style={{ background: bg }} />
+          <div className="space-y-2">
+            <div className="h-4 rounded w-32" style={{ background: bg }} />
+          </div>
+        </div>
+        <div className="h-56 rounded-xl" style={{ background: bg }} />
+        <div className="h-4 rounded w-full" style={{ background: bg }} />
+        <div className="h-4 rounded w-11/12" style={{ background: bg }} />
+        <div className="h-4 rounded w-4/5" style={{ background: bg }} />
+        <div className="h-4 rounded w-full" style={{ background: bg }} />
+        <div className="h-4 rounded w-2/3" style={{ background: bg }} />
       </div>
     );
   }

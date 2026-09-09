@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { CommentEntity } from '@/types/blog.types';
-import { commentService } from '@/services/comment.service';
+import { toPersianDigits } from '@/lib/utils';
 import CommentItem from './CommentItem';
 import CommentForm from './CommentForm';
 import EmptyState from '@/components/ui/EmptyState';
 import Pagination from '@/components/ui/Pagination';
-import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
+import { MessageSquare } from 'lucide-react';
 
 interface CommentListProps {
   blogId: number;
@@ -17,41 +16,71 @@ interface CommentListProps {
     pageCount: number;
     totalCount: number;
   };
+  /** True when the viewer is the blog author or an Admin. */
+  canModerate?: boolean;
   onRefresh?: () => void;
 }
 
-export default function CommentList({ blogId, comments: initialComments, pagination: initialPagination, onRefresh }: CommentListProps) {
-  const [comments, setComments] = useState(initialComments);
-  const [pagination, setPagination] = useState(initialPagination);
-
-  useEffect(() => {
-    setComments(initialComments);
-    setPagination(initialPagination);
-  }, [initialComments, initialPagination]);
-
+/**
+ * Top-level comment list for the blog detail page.
+ * `onRefresh` re-fetches the whole blog (comments included) — the parent owns
+ * the single source of truth, so we never keep a second mutable copy here.
+ * `canModerate` only controls UI visibility; the backend is the authority.
+ */
+export default function CommentList({
+  blogId,
+  comments,
+  pagination,
+  canModerate = false,
+  onRefresh,
+}: CommentListProps) {
   return (
-    <div>
-      <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-        نظرات ({pagination.totalCount})
-      </h3>
+    <section aria-label="نظرات">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+          <MessageSquare className="h-5 w-5" style={{ color: 'var(--primary)' }} />
+          نظرات ({toPersianDigits(pagination.totalCount)})
+        </h3>
+      </div>
 
       <CommentForm blogId={blogId} onCommentAdded={onRefresh} />
 
-      <div>
-        {comments.map((comment) => (
-          <div key={comment.id} style={{ borderBottom: comments.indexOf(comment) < comments.length - 1 ? '1px solid var(--border)' : undefined }}>
-            <CommentItem
-              comment={comment}
-              blogId={blogId}
-              onCommentAdded={onRefresh}
-            />
+      <div className="mt-4">
+        {comments.length === 0 ? (
+          <EmptyState
+            title="هنوز نظری ثبت نشده"
+            description="اولین نفری باشید که نظر می‌دهد"
+            icon={<MessageSquare className="h-12 w-12" />}
+          />
+        ) : (
+          <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+            {comments.map((comment) => (
+              <div key={comment.id} style={{ borderColor: 'var(--border)' }}>
+                <CommentItem
+                  comment={comment}
+                  blogId={blogId}
+                  canModerate={canModerate}
+                  onCommentAdded={onRefresh}
+                />
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
-      {comments.length === 0 && (
-        <EmptyState title="نظری ثبت نشده" description="اولین نفری باشید که نظر می‌دهید" />
+      {pagination.pageCount > 1 && (
+        <div className="mt-6">
+          <Pagination
+            page={pagination.page}
+            pageCount={pagination.pageCount}
+            onPageChange={() => {
+              // Comment pagination is server-side via the blog query; refresh keeps page 1
+              // until the detail endpoint exposes a page param — backend contract unchanged.
+              onRefresh?.();
+            }}
+          />
+        </div>
       )}
-    </div>
+    </section>
   );
 }

@@ -1,5 +1,6 @@
 import api from '@/lib/api';
 import type { ProfileDto, ProfileWithCounts } from '@/types/auth.types';
+import type { PublicProfile } from '@/types/profile.types';
 import type { FollowEntity } from '@/types/follow.types';
 import type { UserListItem } from '@/types/follow.types';
 import type { PaginationMeta } from '@/types/api.types';
@@ -7,6 +8,14 @@ import type { PaginationMeta } from '@/types/api.types';
 export const userService = {
   async getProfile(): Promise<ProfileWithCounts> {
     const res = await api.get<ProfileWithCounts>('/user/profile');
+    return res.data;
+  },
+
+  /** Public author profile — works for guests and authenticated viewers. */
+  async getPublicProfile(username: string): Promise<PublicProfile> {
+    const res = await api.get<PublicProfile>(
+      `/user/by-username/${encodeURIComponent(username)}`
+    );
     return res.data;
   },
 

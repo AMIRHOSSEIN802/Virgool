@@ -39,6 +39,9 @@ export interface BlogListBlog {
   likeCount?: number;
   bookmarkCount?: number;
   commentCount?: number;
+  /** Viewer's like/bookmark state — now returned by list AND detail endpoints. */
+  isLiked?: boolean;
+  isBookmarked?: boolean;
   created_at: string;
   author?: {
     id: number;

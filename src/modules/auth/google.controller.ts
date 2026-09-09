@@ -1,7 +1,7 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { GoogleUser } from './types/response';
 
@@ -14,9 +14,18 @@ export class GoogleAuthController {
   @Get()
   googleLogin() {}
 
+  /**
+   * Passport hands the Google profile over; the service signs in / registers
+   * the user and this handler redirects to the FRONTEND callback with the
+   * access token in the query string — matching what the Next.js callback
+   * page (/auth/google/callback) expects: /auth/google/callback?token=...
+   */
   @Get('/redirect')
-  googleRedirect(@Req() req: Request) {
+  async googleRedirect(@Req() req: Request, @Res() res: Response) {
     const userData = req.user as GoogleUser;
-    return this.authService.googleAuth(userData);
+    const { token } = await this.authService.googleAuth(userData);
+    return res.redirect(
+      `http://localhost:3001/auth/google/callback?token=${encodeURIComponent(token)}`,
+    );
   }
 }

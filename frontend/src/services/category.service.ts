@@ -8,7 +8,7 @@ export const categoryService = {
     const data = res.data;
     return {
       pagination: data.pagination,
-      categories: data.categpties ?? data.categories,
+      categories: data.categories,
     };
   },
 

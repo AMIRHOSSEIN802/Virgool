@@ -117,7 +117,7 @@ html {
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-sans), 'Vazirmatn', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-vazirmatn), 'Vazirmatn', 'Segoe UI', system-ui, -apple-system, sans-serif;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -300,12 +300,38 @@ body {
 }
 
 /* Blog content styles */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--surface);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-outline:hover {
+  background: var(--surface-hover);
+}
+
+.blog-content {
+  color: var(--text-secondary);
+  font-size: 1.0625rem;
+  line-height: 2.1;
+  overflow-wrap: break-word;
+}
+
 .blog-content h1 {
-  font-size: 1.875rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-  margin-top: 1.5rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 2rem 0 0.75rem;
   color: var(--text-primary);
+  line-height: 1.5;
 }
 
 .blog-content h2 {
@@ -396,6 +422,34 @@ body {
   max-width: 100%;
   border-radius: var(--radius-lg);
   margin: 1.25rem 0;
+}
+
+.blog-content figure figcaption,
+.blog-content figcaption {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+  text-align: center;
+  margin-top: -0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.blog-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.9375rem;
+}
+
+.blog-content th,
+.blog-content td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: right;
+}
+
+.blog-content th {
+  background: var(--secondary);
+  color: var(--text-primary);
 }
 
 .blog-content hr {

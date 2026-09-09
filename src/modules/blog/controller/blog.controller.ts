@@ -75,4 +75,13 @@ export class BlogController {
   ) {
     return this.blogService.update(id, blogDto);
   }
+
+  /**
+   * B3 — dedicated publish workflow. Ownership/admin authorization is enforced
+   * in the service (assertBlogOwner). Status is NOT settable through PUT.
+   */
+  @Post('/:id/publish')
+  publish(@Param('id', ParseIntPipe) id: number) {
+    return this.blogService.publish(id);
+  }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { SuggestedBlog } from '@/types/blog.types';
 import { getImageUrl } from '@/lib/constants';
 import { Clock, Heart, MessageCircle } from 'lucide-react';
@@ -23,11 +24,15 @@ export default function SuggestedBlogs({ blogs }: SuggestedBlogsProps) {
             className="flex gap-3 group"
           >
             {blog.image ? (
-              <img
-                src={getImageUrl(blog.image)}
-                alt={blog.title}
-                className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-              />
+              <span className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 block">
+                <Image
+                  src={getImageUrl(blog.image)}
+                  alt={blog.title}
+                  fill
+                  sizes="80px"
+                  className="object-cover"
+                />
+              </span>
             ) : (
               <div style={{ background: 'var(--secondary)' }} className="w-20 h-20 rounded-lg flex items-center justify-center flex-shrink-0">
                 <span style={{ color: 'var(--text-tertiary)' }} className="text-2xl">📝</span>

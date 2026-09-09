@@ -1,24 +1,27 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Vazirmatn } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import MobileNav from "@/components/layout/MobileNav";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const vazirmatn = Vazirmatn({
+  variable: "--font-vazirmatn",
+  subsets: ["arabic"],
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "ویرگول - پلتفرم نوشتن و اشتراک‌گذاری مقالات",
+  title: {
+    default: "ویرگول - پلتفرم نوشتن و اشتراک‌گذاری مقالات",
+    template: "%s | ویرگول",
+  },
   description: "ویرگول پلتفرمی برای نوشتن، خواندن و اشتراک‌گذاری مقالات",
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8f9fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f0f1a" },
+  ],
 };
 
 export default function RootLayout({
@@ -27,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fa" dir="rtl" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="fa" dir="rtl" className={vazirmatn.variable} suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -35,12 +38,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen flex flex-col" style={{ background: 'var(--bg)', color: 'var(--fg)' }}>
+      <body className="min-h-screen flex flex-col">
         <Providers>
-          <Header />
-          <main className="flex-1 pb-16 md:pb-0">{children}</main>
-          <Footer />
-          <MobileNav />
+          {children}
         </Providers>
       </body>
     </html>

@@ -24,6 +24,8 @@ import {
 import { multerStorage } from 'src/common/utils/multer.utils';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../auth/guards/auth.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
+import { SkipAuth } from 'src/common/decorators/skip-auth.decorator';
 import type { ProfileImages } from './types/files';
 import { UploadedOptionalFiles } from 'src/common/decorators/upload-file-decorators';
 import type { Response } from 'express';
@@ -61,6 +63,13 @@ export class UserController {
     @Body() profileDto: ProfileDto,
   ) {
     return this.userService.changeProfile(files, profileDto);
+  }
+
+  @Get('/by-username/:username')
+  @SkipAuth()
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
+  async byUsername(@Param('username') username: string) {
+    return this.userService.publicProfileByUsername(username);
   }
 
   @Get('/profile')
@@ -131,6 +140,7 @@ export class UserController {
 
   @Post('/block')
   @CanAccess(Roles.Admin)
+  @UseGuards(RoleGuard)
   @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   async block(@Body() blockDto: UserBlockDto) {
     return this.userService.blockToggle(blockDto);

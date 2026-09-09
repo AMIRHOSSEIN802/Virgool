@@ -5,7 +5,7 @@ export interface PaginationMeta {
   pageCount: number;
 }
 
-export interface PaginatedResponse<T> {
+export interface PaginatedResponse {
   pagination: PaginationMeta;
   [key: string]: unknown;
 }

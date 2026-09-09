@@ -53,14 +53,14 @@ export class CategoryService {
 
   async findAll(paginationDto: PaginationDto) {
     const { limit, page, skip } = paginationSolver(paginationDto);
-    const [categpties, count] = await this.categoryRepository.findAndCount({
+    const [categories, count] = await this.categoryRepository.findAndCount({
       where: {},
       skip,
       take: limit,
     });
     return {
       pagination: paginationGenerator(count, page, limit),
-      categpties,
+      categories,
     };
   }
 

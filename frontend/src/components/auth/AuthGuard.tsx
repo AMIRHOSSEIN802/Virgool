@@ -11,15 +11,22 @@ interface AuthGuardProps {
   requireAdmin?: boolean;
 }
 
+/**
+ * Client-side guard for authenticated (optionally admin-only) pages.
+ * Redirects to /auth and carries the current path so login returns the user here.
+ */
 export default function AuthGuard({ children, requireAdmin }: AuthGuardProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth');
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      const current = window.location.pathname + window.location.search;
+      router.push(`/auth?redirect=${encodeURIComponent(current)}`);
+      return;
     }
-    if (!isLoading && requireAdmin && user?.role !== 'admin') {
+    if (requireAdmin && user?.role !== 'admin') {
       router.push('/');
     }
   }, [isLoading, isAuthenticated, user, requireAdmin, router]);

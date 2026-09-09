@@ -24,21 +24,23 @@ export default function CommentForm({ blogId, parentId, onCommentAdded, onCancel
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      router.push('/auth');
+      router.push(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
     if (text.trim().length < 5) {
-      toast.error('متن کامنت باید حداقل 5 کاراکتر باشد');
+      toast.error('متن نظر باید حداقل 5 کاراکتر باشد');
       return;
     }
     setIsLoading(true);
     try {
       await commentService.create({ text: text.trim(), blogId, parentId });
-      toast.success('کامنت شما با موفقیت ارسال شد');
+      toast.success('نظر شما ثبت شد');
       setText('');
       onCommentAdded?.();
-    } catch {
-      toast.error('خطا در ارسال کامنت');
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string | string[] } } })
+        .response?.data?.message;
+      toast.error(Array.isArray(message) ? message[0] : message || 'خطا در ارسال نظر');
     } finally {
       setIsLoading(false);
     }
@@ -51,18 +53,18 @@ export default function CommentForm({ blogId, parentId, onCommentAdded, onCancel
         alt={user?.profile?.nick_name || user?.username || ''}
         size="sm"
       />
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={parentId ? 'پاسخ خود را بنویسید...' : 'نظر خود را بنویسید...'}
-          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 resize-none"
-          style={{ border: '1px solid var(--border)', '--tw-ring-color': 'var(--primary)' } as React.CSSProperties}
+          className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] resize-none"
+          style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)' }}
           rows={parentId ? 2 : 3}
         />
         <div className="flex items-center gap-2 mt-2">
-          <Button type="submit" size="sm" isLoading={isLoading} disabled={!text.trim()}>
-            {parentId ? 'پاسخ' : 'ارسال'}
+          <Button type="submit" size="sm" isLoading={isLoading} disabled={text.trim().length === 0}>
+            {parentId ? 'پاسخ' : 'ارسال نظر'}
           </Button>
           {parentId && onCancel && (
             <Button type="button" size="sm" variant="ghost" onClick={onCancel}>

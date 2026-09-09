@@ -32,6 +32,7 @@ export enum PublicMessage {
   UnFollow = 'از لیست دنبال شوندگان حذف شد',
   Blocked = 'حساب کاربری با موفقیت مسدود شد',
   UnBlocked = 'حساب کاربری از حالت مسدود خارج شد',
+  Published = 'مقاله با موفقیت منتشر شد',
 }
 
 export enum NotFoundMessage {
@@ -46,6 +47,13 @@ export enum ConflictMessage {
   Email = 'ایمیل اشتباه است',
   Phone = 'شماره موبایل اشتباه است',
   username = 'نام کاربری اشتباه است',
+}
+export enum ForbiddenMessage {
+  AccessDenied = 'شما دسترسی لازم برای این عملیات را ندارید',
+}
+export enum RateLimitMessage {
+  TooManyOtpRequests = 'تعداد درخواست کد بیش از حد مجاز است. لطفا بعدا تلاش کنید',
+  TooManyAttempts = 'تعداد تلاش‌های ناموفق بیش از حد مجاز است. درخواست کد جدید',
 }
 export enum ValidationMessage {
   InvalidImageFormat = 'فرمت تصویر انتخاب شده باید از نوع jpg , png باشد',

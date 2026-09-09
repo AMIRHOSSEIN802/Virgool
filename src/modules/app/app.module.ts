@@ -27,6 +27,8 @@ import { ImageModule } from '../image/image.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AddUserToReqWOV).forRoutes('blog/by-slug/:slug');
+    consumer
+      .apply(AddUserToReqWOV)
+      .forRoutes('blog/by-slug/:slug', 'blog', 'user/by-username/:username');
   }
 }

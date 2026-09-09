@@ -59,11 +59,11 @@ export class UserService {
 
   async changeProfile(files: ProfileImages, profileDto: ProfileDto) {
     if (files?.image_profile?.length > 0) {
-      let [image] = files?.image_profile;
+      const [image] = files?.image_profile;
       profileDto.image_profile = image?.path?.slice(7);
     }
     if (files?.bg_image?.length > 0) {
-      let [image] = files?.bg_image;
+      const [image] = files?.bg_image;
       profileDto.bg_image = image?.path?.slice(7);
     }
     const { id: userId, profileId } = this.request.user;
@@ -83,7 +83,7 @@ export class UserService {
       if (bio) profile.bio = bio;
       if (birthday && isDate(new Date(birthday)))
         profile.birthday = new Date(birthday);
-      if (gender && Object.values(Gender as any).includes(gender))
+      if (gender && Object.values(Gender).includes(gender as Gender))
         profile.gender = gender;
       if (linkedin_profile) profile.linkedin_profile = linkedin_profile;
       if (x_profile) profile.x_profile = x_profile;
@@ -370,6 +370,69 @@ export class UserService {
       throw new BadRequestException(AuthMessage.ExiredCode);
     if (otp.code !== code) throw new BadRequestException(AuthMessage.TryAgain);
     return otp;
+  }
+
+  /**
+   * Public author profile by username.
+   * Works for guests (no user in request) and authenticated users.
+   * Returns only public data + follow stats + viewer's follow state.
+   * Single round-trip per dataset (no N+1): counts via sub-queries.
+   */
+  async publicProfileByUsername(username: string) {
+    const viewer = (this.request as Request & { user?: UserEntity }).user;
+    const viewerId = viewer?.id;
+
+    const profile = await this.profileRepository
+      .createQueryBuilder('profile')
+      .leftJoinAndSelect('profile.user', 'user')
+      .addSelect((sub) => {
+        return sub
+          .select('COUNT(*)')
+          .from(FollowEntity, 'follow')
+          .where('follow.followingId = user.id');
+      }, 'followersCount')
+      .addSelect((sub) => {
+        return sub
+          .select('COUNT(*)')
+          .from(FollowEntity, 'follow')
+          .where('follow.followerId = user.id');
+      }, 'followingCount')
+      .where('user.username = :username', { username })
+      .getRawAndEntities<{
+        followersCount: string;
+        followingCount: string;
+        isFollowing?: number;
+      }>();
+
+    const entity = profile.entities[0];
+    const raw = profile.raw[0];
+    if (!entity || !raw || !entity.user) {
+      throw new NotFoundException(NotFoundMessage.NotFoundUser);
+    }
+
+    // Viewer's follow state (only when authenticated, single indexed query).
+    let isFollowing = false;
+    if (viewerId) {
+      isFollowing = !!(await this.followRepository.findOneBy({
+        followingId: entity.user.id,
+        followerId: viewerId,
+      }));
+    }
+
+    return {
+      id: entity.user.id,
+      username: entity.user.username,
+      role: entity.user.role,
+      profile: {
+        nick_name: entity.nick_name,
+        bio: entity.bio,
+        image_profile: entity.image_profile,
+        bg_image: entity.bg_image,
+      },
+      followersCount: Number(raw.followersCount),
+      followingCount: Number(raw.followingCount),
+      isFollowing,
+    };
   }
 
   async followToggle(followingId: number) {

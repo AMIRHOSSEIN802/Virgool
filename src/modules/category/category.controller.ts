@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -16,12 +17,18 @@ import { ApiConsumes } from '@nestjs/swagger';
 import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
 import { Pagination } from 'src/common/decorators/pagination.decorator';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
+import { CanAccess } from 'src/common/decorators/role.dexorator';
+import { Roles } from 'src/common/enums/role.eunm';
 
 @Controller('category')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
+  @CanAccess(Roles.Admin)
+  @UseGuards(AuthGuard, RoleGuard)
   @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   create(@Body() createCategoryDto: CreateCategoryDto) {
     return this.categoryService.create(createCategoryDto);
@@ -39,6 +46,8 @@ export class CategoryController {
   }
 
   @Patch(':id')
+  @CanAccess(Roles.Admin)
+  @UseGuards(AuthGuard, RoleGuard)
   @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -48,6 +57,8 @@ export class CategoryController {
   }
 
   @Delete(':id')
+  @CanAccess(Roles.Admin)
+  @UseGuards(AuthGuard, RoleGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.categoryService.remove(id);
   }

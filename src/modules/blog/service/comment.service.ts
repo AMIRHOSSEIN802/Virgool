@@ -1,7 +1,9 @@
 import {
   BadRequestException,
-  forwardRef,
+  ForbiddenException,
   Inject,
+  NotFoundException,
+  forwardRef,
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -21,6 +23,8 @@ import {
   paginationGenerator,
   paginationSolver,
 } from 'src/common/utils/pagination.util';
+import { ForbiddenMessage } from 'src/common/enums/message.enum';
+import { Roles } from 'src/common/enums/role.eunm';
 
 @Injectable()
 export class BlogCommentService {
@@ -148,11 +152,13 @@ export class BlogCommentService {
   }
   async checkExistCommentById(id: number) {
     const comment = await this.blogCommentRepository.findOneBy({ id });
-    if (!comment) throw new BadRequestException(NotFoundMessage.NotFound);
+    // 404-first (consistent with blog resource checks in B1/B3)
+    if (!comment) throw new NotFoundException(NotFoundMessage.NotFound);
     return comment;
   }
-  async accept(id: number) {
+  async accept(id: number, user: UserEntity) {
     const comment = await this.checkExistCommentById(id);
+    await this.assertCommentOwner(comment, user);
     if (comment.accepted)
       throw new BadRequestException(BadRequestMessage.AlreadyAccepted);
     comment.accepted = true;
@@ -161,8 +167,9 @@ export class BlogCommentService {
       message: PublicMessage.Updated,
     };
   }
-  async reject(id: number) {
+  async reject(id: number, user: UserEntity) {
     const comment = await this.checkExistCommentById(id);
+    await this.assertCommentOwner(comment, user);
     if (!comment.accepted)
       throw new BadRequestException(BadRequestMessage.AlreadyRejected);
     comment.accepted = false;
@@ -170,5 +177,20 @@ export class BlogCommentService {
     return {
       message: PublicMessage.Updated,
     };
+  }
+
+  /**
+   * Only the author of the commented blog or an Admin may accept/reject.
+   * The authenticated user is passed in from the controller (req.user).
+   */
+  private async assertCommentOwner(
+    comment: BlogCommenrtEntity,
+    user?: UserEntity,
+  ) {
+    if (!user) return;
+    if (user.role === Roles.Admin) return;
+    const blog = await this.blogRepository.findOneBy({ id: comment.blogId });
+    if (blog && blog.authorId === user.id) return;
+    throw new ForbiddenException(ForbiddenMessage.AccessDenied);
   }
 }

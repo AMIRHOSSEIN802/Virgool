@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { FollowEntity } from '@/types/follow.types';
 import Avatar from '@/components/ui/Avatar';
 
 interface UserCardProps {

@@ -37,11 +37,11 @@ export class BlogCommentController {
     return this.blogCommentService.find(paginationDto);
   }
   @Put('/accept/:id')
-  accept(@Param('id', ParseIntPipe) id: number) {
-    return this.blogCommentService.accept(id);
+  accept(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    return this.blogCommentService.accept(id, req.user);
   }
   @Put('/reject/:id')
-  reject(@Param('id', ParseIntPipe) id: number) {
-    return this.blogCommentService.reject(id);
+  reject(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+    return this.blogCommentService.reject(id, req.user);
   }
 }

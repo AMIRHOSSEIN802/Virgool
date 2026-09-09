@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -12,6 +13,7 @@ import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
 import {
   BadRequestMessage,
+  ForbiddenMessage,
   NotFoundMessage,
   PublicMessage,
 } from 'src/common/enums/message.enum';
@@ -22,7 +24,9 @@ import {
 } from 'src/common/utils/pagination.util';
 import { isArray } from 'class-validator';
 import { EntityName } from 'src/common/enums/entity.eunm';
+import { Roles } from 'src/common/enums/role.eunm';
 import { BlogEntity } from '../entities/blog.entity';
+import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { CreateBlogDto, FilterBlogDto, UpdateBlogDto } from '../dto/blog.dto';
 import { BlogStatus } from '../enums/status.enum';
 import { CategoryService } from 'src/modules/category/category.service';
@@ -121,19 +125,22 @@ export class BlogService {
 
     let { category, search } = filterDto;
 
-    let where = '';
+    let where = 'blog.status = :status';
+    const parameters: Record<string, unknown> = {
+      status: BlogStatus.Published,
+    };
 
     if (category) {
       category = category.toLowerCase();
-      if (where.length > 0) where += ' AND ';
-      where += 'category.title = LOWER(:category)';
+      where += ' AND category.title = LOWER(:category)';
+      parameters.category = category;
     }
 
     if (search) {
-      if (where.length > 0) where += ' AND ';
       search = `%${search}%`;
       where +=
-        'CONCAT(blog.title, blog.description, blog.content) ILIKE :search';
+        ' AND CONCAT(blog.title, blog.description, blog.content) ILIKE :search';
+      parameters.search = search;
     }
     const [blogs, count] = await this.blogRepository
       .createQueryBuilder(EntityName.blog)
@@ -148,23 +155,43 @@ export class BlogService {
         'author.id',
         'profile.nick_name',
       ])
-      .where(where, { category, search })
+      .where(where, parameters)
       .orderBy('blog.id', 'DESC')
       .skip(skip)
       .take(limit)
       .getManyAndCount();
 
-    // const [blogs, count] = await this.blogRepository.findAndCount({
-    //   where: {},
-    //   order: {
-    //     id: 'DESC',
-    //   },
-    //   skip,
-    //   take: limit,
-    // });
+    // Per-viewer like/bookmark state for the whole page in ONE query each
+    // (no N+1). Guest requests get plain false.
+    const viewerId = (this.request as Request & { user?: { id: number } }).user
+      ?.id;
+    let likedIds = new Set<number>();
+    let bookmarkedIds = new Set<number>();
+    if (viewerId && blogs.length > 0) {
+      const blogIds = blogs.map((b) => b.id);
+      const [likes, bookmarks] = await Promise.all([
+        this.blogLikeRepository
+          .createQueryBuilder('like')
+          .where('like.userId = :viewerId', { viewerId })
+          .andWhere('like.blogId IN (:...blogIds)', { blogIds })
+          .getMany(),
+        this.blogbookmarkRepository
+          .createQueryBuilder('bookmark')
+          .where('bookmark.userId = :viewerId', { viewerId })
+          .andWhere('bookmark.blogId IN (:...blogIds)', { blogIds })
+          .getMany(),
+      ]);
+      likedIds = new Set(likes.map((l) => l.blogId));
+      bookmarkedIds = new Set(bookmarks.map((b) => b.blogId));
+    }
+
     return {
       pagination: paginationGenerator(count, page, limit),
-      blogs,
+      blogs: blogs.map((blog) => ({
+        ...blog,
+        isLiked: likedIds.has(blog.id),
+        isBookmarked: bookmarkedIds.has(blog.id),
+      })),
     };
   }
   async checkExistBlogById(id: number) {
@@ -172,8 +199,21 @@ export class BlogService {
     if (!blog) throw new NotFoundException(NotFoundMessage.NotFoundPost);
     return blog;
   }
+  /**
+   * Only the blog's author or an Admin may modify/delete it (IDOR/BOLA guard).
+   * The owner is read from the LOADED blog row — never from client input.
+   */
+  private assertBlogOwner(blog: BlogEntity) {
+    const user = this.request.user as UserEntity | undefined;
+    if (!user) return; // AuthGuard guarantees an authenticated user on these routes
+    if (user.role === Roles.Admin) return; // admins may moderate any blog
+    if (blog.authorId !== user.id) {
+      throw new ForbiddenException(ForbiddenMessage.AccessDenied);
+    }
+  }
   async delete(id: number) {
-    await this.checkExistBlogById(id);
+    const blog = await this.checkExistBlogById(id);
+    this.assertBlogOwner(blog);
     await this.blogRepository.delete({ id });
     return {
       message: PublicMessage.Deleted,
@@ -191,6 +231,7 @@ export class BlogService {
     } = blogDto;
 
     const blog = await this.checkExistBlogById(id);
+    this.assertBlogOwner(blog);
 
     if (title !== undefined) {
       blog.title = title;
@@ -275,6 +316,23 @@ export class BlogService {
       message: PublicMessage.Updated,
     };
   }
+  /**
+   * B3 — dedicated publish workflow. Only the owner or an Admin may publish
+   * (same semantics as B1's assertBlogOwner). Idempotent: publishing an
+   * already-published blog is a successful no-op. All other data is untouched.
+   */
+  async publish(id: number) {
+    const blog = await this.checkExistBlogById(id);
+    this.assertBlogOwner(blog);
+
+    if (blog.status !== String(BlogStatus.Published)) {
+      blog.status = BlogStatus.Published;
+      await this.blogRepository.save(blog);
+    }
+    return {
+      message: PublicMessage.Published,
+    };
+  }
   async LikeToggle(blogId: number) {
     const { id: userId } = this.request.user;
     await this.checkExistBlogById(blogId);
@@ -311,7 +369,7 @@ export class BlogService {
     return { message };
   }
   async findOneBySlug(slug: string, paginationDto: PaginationDto) {
-    const userId = this.request?.user?.id;
+    const user = this.request?.user as UserEntity | undefined;
 
     const blog = await this.blogRepository
       .createQueryBuilder(EntityName.blog)
@@ -347,6 +405,19 @@ export class BlogService {
       throw new NotFoundException(NotFoundMessage.NotFoundPost);
     }
 
+    /**
+     * Draft privacy (B2): a non-published blog is only visible to its author
+     * or an Admin. Anyone else — including guests — gets a 404 so the draft's
+     * existence is never revealed.
+     */
+    if (blog.status !== String(BlogStatus.Published)) {
+      const isOwner = user?.id === blog.authorId;
+      const isAdmin = user?.role === Roles.Admin;
+      if (!isOwner && !isAdmin) {
+        throw new NotFoundException(NotFoundMessage.NotFoundPost);
+      }
+    }
+
     // گرفتن کامنت‌های بلاگ
     const commentsData = await this.blogCommentService.findCommentsOfBlog(
       blog.id,
@@ -357,14 +428,14 @@ export class BlogService {
     let isLiked = false;
     let isBookmarked = false;
 
-    if (userId && !isNaN(userId) && userId > 0) {
+    if (user?.id && !isNaN(user.id) && user.id > 0) {
       isLiked = !!(await this.blogLikeRepository.findOneBy({
-        userId,
+        userId: user.id,
         blogId: blog.id,
       }));
 
       isBookmarked = !!(await this.blogbookmarkRepository.findOneBy({
-        userId,
+        userId: user.id,
         blogId: blog.id,
       }));
     }
@@ -443,7 +514,9 @@ export class BlogService {
         ON bc."categoryId" = cat.id
 
       -- مقاله‌ای که الان کاربر مشاهده می‌کند پیشنهاد نشود
+      -- فقط مقالات منتشرشده پیشنهاد می‌شوند (draft خصوصی است)
       WHERE blog.id != $1
+        AND blog.status = 'published'
 
       GROUP BY
         blog.id,

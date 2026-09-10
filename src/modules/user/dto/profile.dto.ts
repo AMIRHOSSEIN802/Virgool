@@ -11,7 +11,10 @@ import {
 import { ValidationMessage } from 'src/common/enums/message.enum';
 
 export class ProfileDto {
+  // Optional so image-only profile updates (avatar/cover upload without other
+  // fields) pass validation. The service already skips empty values.
   @ApiPropertyOptional()
+  @IsOptional()
   @Length(2, 10)
   nick_name: string;
   @ApiPropertyOptional({ nullable: true })

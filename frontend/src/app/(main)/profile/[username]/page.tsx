@@ -161,9 +161,9 @@ export default function PublicProfilePage() {
               : { background: 'linear-gradient(120deg, var(--primary) 0%, var(--accent) 100%)' }
           }
         >
-          {profile.profile.bg_image && (
+          {profile.profile.bg_image && getImageUrl(profile.profile.bg_image) && (
             <Image
-              src={getImageUrl(profile.profile.bg_image)}
+              src={getImageUrl(profile.profile.bg_image)!}
               alt="کاور پروفایل"
               fill
               sizes="(max-width: 640px) 100vw, 896px"

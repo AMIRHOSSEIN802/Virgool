@@ -35,17 +35,29 @@ function ProfileContent() {
   const [usernameValue, setUsernameValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [uploadingField, setUploadingField] = useState<'image_profile' | 'bg_image' | null>(null);
+
   const handleImageUpload = async (field: 'image_profile' | 'bg_image', file: File) => {
     if (file.size > 5 * 1024 * 1024) {
       toast.error('حجم تصویر باید کمتر از 5 مگابایت باشد');
       return;
     }
+    if (uploadingField) return; // prevent duplicate submissions
+    setUploadingField(field);
     try {
       await userService.updateProfileImage(field, file);
-      toast.success('تصویر بروزرسانی شد');
+      toast.success(field === 'image_profile' ? 'تصویر پروفایل بروزرسانی شد' : 'تصویر کاور بروزرسانی شد');
+      // Re-fetch so the avatar/cover update immediately (no full page reload).
       fetchProfile();
-    } catch {
-      toast.error('خطا در آپلود تصویر');
+    } catch (err: unknown) {
+      // Surface the real backend message (e.g. invalid format) when available.
+      const message = (err as { response?: { data?: { message?: string | string[] } } })
+        .response?.data?.message;
+      toast.error(
+        (Array.isArray(message) ? message[0] : message) || 'خطا در آپلود تصویر'
+      );
+    } finally {
+      setUploadingField(null);
     }
   };
 
@@ -181,8 +193,18 @@ function ProfileContent() {
       {/* Image Upload Modal */}
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="تغییر تصاویر">
         <div className="space-y-5">
-          <FileField label="تصویر پروفایل" accept="image/png,image/jpeg" onPick={(f) => handleImageUpload('image_profile', f)} />
-          <FileField label="تصویر کاور" accept="image/png,image/jpeg" onPick={(f) => handleImageUpload('bg_image', f)} />
+          <FileField
+            label="تصویر پروفایل"
+            accept="image/png,image/jpeg"
+            busy={uploadingField === 'image_profile'}
+            onPick={(f) => handleImageUpload('image_profile', f)}
+          />
+          <FileField
+            label="تصویر کاور"
+            accept="image/png,image/jpeg"
+            busy={uploadingField === 'bg_image'}
+            onPick={(f) => handleImageUpload('bg_image', f)}
+          />
           <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>فرمت‌های مجاز: JPG و PNG — حداکثر 5 مگابایت</p>
         </div>
       </Modal>
@@ -287,20 +309,33 @@ function SettingButton({
   );
 }
 
-function FileField({ label, accept, onPick }: { label: string; accept: string; onPick: (f: File) => void }) {
+function FileField({
+  label,
+  accept,
+  busy,
+  onPick,
+}: {
+  label: string;
+  accept: string;
+  busy?: boolean;
+  onPick: (f: File) => void;
+}) {
   const [fileName, setFileName] = useState('');
   return (
     <div>
       <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>{label}</label>
       <div className="flex items-center gap-2">
         <label
-          className="flex-1 cursor-pointer text-sm px-3 py-2.5 rounded-xl border transition-colors hover:bg-[var(--surface-hover)] truncate"
+          className={`flex-1 text-sm px-3 py-2.5 rounded-xl border transition-colors truncate ${
+            busy ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:bg-[var(--surface-hover)]'
+          }`}
           style={{ borderColor: 'var(--border)', color: fileName ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
         >
-          {fileName || 'انتخاب فایل...'}
+          {busy ? 'در حال آپلود...' : fileName || 'انتخاب فایل...'}
           <input
             type="file"
             accept={accept}
+            disabled={busy}
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];

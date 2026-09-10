@@ -23,10 +23,10 @@ export default function SuggestedBlogs({ blogs }: SuggestedBlogsProps) {
             href={`/blog/${blog.slug}`}
             className="flex gap-3 group"
           >
-            {blog.image ? (
+            {blog.image && getImageUrl(blog.image) ? (
               <span className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 block">
                 <Image
-                  src={getImageUrl(blog.image)}
+                  src={getImageUrl(blog.image)!}
                   alt={blog.title}
                   fill
                   sizes="80px"

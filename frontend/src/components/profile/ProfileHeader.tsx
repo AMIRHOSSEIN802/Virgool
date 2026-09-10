@@ -17,20 +17,24 @@ export default function ProfileHeader({ profile, isOwn }: ProfileHeaderProps) {
   const displayName = profile.profile?.nick_name || profile.username;
   const cover = profile.profile?.bg_image;
 
+  const coverUrl = getImageUrl(cover);
+
   return (
     <div className="rounded-2xl overflow-hidden shadow-sm" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
       {/* Cover */}
+      {/* Resolve once: an invalid legacy path yields "" and the gradient fallback
+          renders instead of <Image src=""> which Next.js rejects. */}
       <div
         className="relative h-32 sm:h-44"
         style={{
-          background: cover
+          background: coverUrl
             ? undefined
             : 'linear-gradient(120deg, var(--primary) 0%, var(--accent) 100%)',
         }}
       >
-        {cover && (
+        {coverUrl && (
           <Image
-            src={getImageUrl(cover)}
+            src={coverUrl}
             alt="کاور پروفایل"
             fill
             sizes="(max-width: 640px) 100vw, 896px"

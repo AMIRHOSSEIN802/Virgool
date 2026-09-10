@@ -12,17 +12,17 @@ import {
 @Entity(EntityName.Image)
 export class ImageEntity extends BaseEntity {
   @Column()
-  name: string;
+  name!: string;
   @Column()
-  location: string;
+  location!: string;
   @Column()
-  alt: string;
+  alt!: string;
   @Column()
-  userId: number;
+  userId!: number;
   @CreateDateColumn()
-  created_at: Date;
+  created_at!: Date;
   @ManyToOne(() => UserEntity, (user) => user.images, { onDelete: 'CASCADE' })
-  user: UserEntity;
+  user!: UserEntity;
   @AfterLoad()
   map() {
     this.location = `http://localhost:3000/${this.location}`;

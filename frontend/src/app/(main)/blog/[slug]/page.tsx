@@ -142,10 +142,10 @@ export default function BlogDetailPage() {
           </div>
 
           {/* Cover Image */}
-          {blog.image && (
+          {blog.image && getImageUrl(blog.image) && (
             <figure className="mb-8 rounded-2xl overflow-hidden relative h-64 sm:h-96" style={{ border: '1px solid var(--border)' }}>
               <Image
-                src={getImageUrl(blog.image)}
+                src={getImageUrl(blog.image)!}
                 alt={blog.title}
                 fill
                 sizes="(max-width: 1024px) 100vw, 66vw"

@@ -87,10 +87,10 @@ function MyBlogsContent() {
                 className="flex items-center gap-4 p-4 rounded-2xl transition-shadow hover:shadow-md"
                 style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
               >
-                {blog.image ? (
+                {blog.image && getImageUrl(blog.image) ? (
                   <span className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0 block">
                     <Image
-                      src={getImageUrl(blog.image)}
+                      src={getImageUrl(blog.image)!}
                       alt={blog.title}
                       fill
                       sizes="80px"

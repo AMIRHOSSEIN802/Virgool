@@ -27,10 +27,14 @@ export default function Avatar({ src, alt = '', size = 'md', fallback }: AvatarP
     ? fallback.slice(0, 2).toUpperCase()
     : alt.slice(0, 2).toUpperCase();
 
-  if (src) {
+  // Resolve once; a falsy URL (missing/invalid legacy path) falls back to initials
+  // instead of rendering <Image src=""> which Next.js rejects.
+  const url = src ? getImageUrl(src) : '';
+
+  if (url) {
     return (
       <Image
-        src={getImageUrl(src)}
+        src={url}
         alt={alt}
         width={sizes[size]}
         height={sizes[size]}

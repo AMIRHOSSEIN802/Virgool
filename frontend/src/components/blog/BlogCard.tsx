@@ -34,17 +34,19 @@ export default function BlogCard({ blog, onLikeChange }: BlogCardProps) {
   });
 
   const blogHref = `/blog/${encodeURIComponent(blog.slug)}`;
+  // Resolve once; invalid legacy paths yield "" so no <Image> is rendered.
+  const imageUrl = blog.image ? getImageUrl(blog.image) : '';
 
   return (
     <article
       className="group rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 flex flex-col"
       style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
     >
-      {blog.image && (
+      {imageUrl && (
         <Link href={blogHref} className="block overflow-hidden">
           <div className="relative h-44 overflow-hidden">
             <Image
-              src={getImageUrl(blog.image)}
+              src={imageUrl}
               alt={blog.title}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"

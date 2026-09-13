@@ -1,6 +1,7 @@
 'use client';
 
 import { userService } from '@/services/user.service';
+import { useAuthStore } from '@/stores/auth.store';
 import { ProfileWithCounts } from '@/types/auth.types';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileForm from '@/components/profile/ProfileForm';
@@ -49,6 +50,16 @@ function ProfileContent() {
       toast.success(field === 'image_profile' ? 'تصویر پروفایل بروزرسانی شد' : 'تصویر کاور بروزرسانی شد');
       // Re-fetch so the avatar/cover update immediately (no full page reload).
       fetchProfile();
+      // Keep the shared auth store (header avatar/dropdown) in sync too.
+      try {
+        const fresh = await userService.getProfile();
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          useAuthStore.getState().setUser({ ...currentUser, profile: fresh.profile ?? null });
+        }
+      } catch {
+        // non-critical — header syncs on next checkLogin
+      }
     } catch (err: unknown) {
       // Surface the real backend message (e.g. invalid format) when available.
       const message = (err as { response?: { data?: { message?: string | string[] } } })

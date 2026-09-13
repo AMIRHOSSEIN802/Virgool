@@ -27,17 +27,23 @@ export const userService = {
     if (data.birthday) formData.append('birthday', data.birthday);
     if (data.linkedin_profile) formData.append('linkedin_profile', data.linkedin_profile);
     if (data.x_profile) formData.append('x_profile', data.x_profile);
-    // Content-Type is intentionally NOT set manually — the browser must generate
-    // the multipart boundary. The shared axios client's JSON default is dropped
-    // for FormData requests by axios itself.
-    const res = await api.put<{ message: string }>('/user/profile', formData);
+    // The shared axios client defaults to Content-Type: application/json. With
+    // FormData + a JSON content-type, axios v1 serializes the body via
+    // formDataToJSON() — File objects collapse to {} and the backend stores
+    // "{}" in the VARCHAR column. The multipart content-type prevents that;
+    // the browser/XHR layer supplies the boundary.
+    const res = await api.put<{ message: string }>('/user/profile', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return res.data;
   },
 
   async updateProfileImage(field: 'image_profile' | 'bg_image', file: File): Promise<{ message: string }> {
     const formData = new FormData();
     formData.append(field, file);
-    const res = await api.put<{ message: string }>('/user/profile', formData);
+    const res = await api.put<{ message: string }>('/user/profile', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return res.data;
   },
 

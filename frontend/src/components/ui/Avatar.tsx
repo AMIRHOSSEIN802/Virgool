@@ -1,4 +1,7 @@
+'use client';
+
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import { getImageUrl } from '@/lib/constants';
 
 interface AvatarProps {
@@ -31,7 +34,14 @@ export default function Avatar({ src, alt = '', size = 'md', fallback }: AvatarP
   // instead of rendering <Image src=""> which Next.js rejects.
   const url = src ? getImageUrl(src) : '';
 
-  if (url) {
+  // A stored path can still fail to load (file deleted from disk, corrupt
+  // upload, 404). Degrade to the initials fallback instead of a broken img.
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [url]);
+
+  if (url && !failed) {
     return (
       <Image
         src={url}
@@ -39,6 +49,7 @@ export default function Avatar({ src, alt = '', size = 'md', fallback }: AvatarP
         width={sizes[size]}
         height={sizes[size]}
         className={`${sizeClasses[size]} rounded-full object-cover ring-2 ring-[var(--surface)]`}
+        onError={() => setFailed(true)}
       />
     );
   }

@@ -75,9 +75,14 @@ export class UserService {
       linkedin_profile,
       nick_name,
       x_profile,
-      image_profile,
-      bg_image,
     } = profileDto;
+    // Multipart JSON serialization (axios formDataToJSON) can deliver these
+    // fields as `{}` — only accept real string paths so a bogus body can never
+    // overwrite a stored image path.
+    const image_profile =
+      typeof profileDto.image_profile === 'string' ? profileDto.image_profile : '';
+    const bg_image =
+      typeof profileDto.bg_image === 'string' ? profileDto.bg_image : '';
     if (profile) {
       if (nick_name) profile.nick_name = nick_name;
       if (bio) profile.bio = bio;

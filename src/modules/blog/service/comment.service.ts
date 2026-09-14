@@ -2,9 +2,9 @@ import {
   BadRequestException,
   ForbiddenException,
   Inject,
+  Injectable,
   NotFoundException,
   forwardRef,
-  Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BlogEntity } from '../entities/blog.entity';
@@ -25,6 +25,8 @@ import {
 } from 'src/common/utils/pagination.util';
 import { ForbiddenMessage } from 'src/common/enums/message.enum';
 import { Roles } from 'src/common/enums/role.eunm';
+import { NotificationService } from 'src/modules/notification/notification.service';
+import { NotificationType } from 'src/modules/notification/enums/type.enum';
 
 @Injectable()
 export class BlogCommentService {
@@ -36,15 +38,16 @@ export class BlogCommentService {
     private blogCommentRepository: Repository<BlogCommenrtEntity>,
 
     @Inject(forwardRef(() => BlogService))
-    @Inject(forwardRef(() => BlogService))
     private blogService: BlogService,
+
+    private notificationService: NotificationService,
   ) {}
 
   async create(commentDto: CreateCommentDto, user: UserEntity) {
     const { parentId, text, blogId } = commentDto;
     const { id: userId } = user;
 
-    await this.blogService.checkExistBlogById(Number(blogId));
+    const blog = await this.blogService.checkExistBlogById(Number(blogId));
 
     let parent: BlogCommenrtEntity | null = null;
 
@@ -54,13 +57,33 @@ export class BlogCommentService {
       });
     }
 
-    await this.blogCommentRepository.insert({
+    const inserted = await this.blogCommentRepository.insert({
       text,
       accepted: true,
       blogId: Number(blogId),
       parentId: parent?.id ?? null,
       userId,
     });
+
+    // Notify after the comment persisted. Never notify about one's own action.
+    // Top-level comment → blog author; reply → parent comment author.
+    const commentId = Number(inserted.identifiers?.[0]?.id ?? 0);
+    const recipientId = parent
+      ? parent.userId
+      : blog.authorId;
+    if (recipientId && recipientId !== userId) {
+      try {
+        await this.notificationService.push({
+          type: parent ? NotificationType.Reply : NotificationType.Comment,
+          recipientId,
+          actorId: userId,
+          blogId: Number(blogId),
+          commentId,
+        });
+      } catch {
+        // notification failure never fails the comment
+      }
+    }
 
     return {
       message: PublicMessage.CreatedComment,
@@ -213,6 +236,21 @@ export class BlogCommentService {
       throw new BadRequestException(BadRequestMessage.AlreadyAccepted);
     comment.accepted = true;
     await this.blogCommentRepository.save(comment);
+    // Tell the commenter their comment was accepted — unless they ARE the
+    // moderator acting on their own comment (e.g. author self-accepting).
+    if (comment.userId !== user.id) {
+      try {
+        await this.notificationService.push({
+          type: NotificationType.CommentAccepted,
+          recipientId: comment.userId,
+          actorId: user.id,
+          blogId: comment.blogId,
+          commentId: comment.id,
+        });
+      } catch {
+        // notification failure never fails moderation
+      }
+    }
     return {
       message: PublicMessage.Updated,
     };
@@ -224,6 +262,19 @@ export class BlogCommentService {
       throw new BadRequestException(BadRequestMessage.AlreadyRejected);
     comment.accepted = false;
     await this.blogCommentRepository.save(comment);
+    if (comment.userId !== user.id) {
+      try {
+        await this.notificationService.push({
+          type: NotificationType.CommentRejected,
+          recipientId: comment.userId,
+          actorId: user.id,
+          blogId: comment.blogId,
+          commentId: comment.id,
+        });
+      } catch {
+        // notification failure never fails moderation
+      }
+    }
     return {
       message: PublicMessage.Updated,
     };

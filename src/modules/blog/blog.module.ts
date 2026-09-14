@@ -12,10 +12,12 @@ import { BlogService } from './service/blog.service';
 import { BlogCommenrtEntity } from './entities/comment.entity';
 import { BlogCommentController } from './controller/comment.controller';
 import { BlogCommentService } from './service/comment.service';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
     AuthModule,
+    NotificationModule,
     TypeOrmModule.forFeature([
       BlogEntity,
       CategoryEntity,

@@ -9,10 +9,12 @@ import { ProfileEntity } from './entities/profile.entity';
 import { OtpEntity } from './entities/otp.entity';
 import { AuthModule } from '../auth/auth.module';
 import { FollowEntity } from './entities/follow.entity';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
     AuthModule,
+    NotificationModule,
     TypeOrmModule.forFeature([
       UserEntity,
       ProfileEntity,

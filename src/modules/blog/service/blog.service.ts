@@ -34,6 +34,8 @@ import { BlogCategoryEntity } from '../entities/blog-category.entity';
 import { BlogLikeEntity } from '../entities/like.entity';
 import { BlogBookmarkEntity } from '../entities/bookmark.entity';
 import { BlogCommentService } from './comment.service';
+import { NotificationService } from 'src/modules/notification/notification.service';
+import { NotificationType } from 'src/modules/notification/enums/type.enum';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogService {
@@ -49,6 +51,7 @@ export class BlogService {
     @Inject(REQUEST) private request: Request,
     private categoryService: CategoryService,
     private blogCommentService: BlogCommentService,
+    private notificationService: NotificationService,
     private dataSource: DataSource,
   ) {}
 
@@ -344,10 +347,12 @@ export class BlogService {
   }
   async LikeToggle(blogId: number) {
     const { id: userId } = this.request.user;
-    await this.checkExistBlogById(blogId);
+    const blog = await this.checkExistBlogById(blogId);
     const isLiked = await this.blogLikeRepository.findOneBy({ userId, blogId });
     let message = PublicMessage.Liek;
     if (isLiked) {
+      // Unlike keeps the notification as history (product call for MVP — the
+      // dedup on re-like prevents spam of NEW unread rows while it is unread).
       await this.blogLikeRepository.delete({ id: isLiked.id });
       message = PublicMessage.DisLike;
     } else {
@@ -355,6 +360,18 @@ export class BlogService {
         blogId,
         userId,
       });
+      if (blog.authorId !== userId) {
+        try {
+          await this.notificationService.push({
+            type: NotificationType.Like,
+            recipientId: blog.authorId,
+            actorId: userId,
+            blogId,
+          });
+        } catch {
+          // notification failure never fails the like
+        }
+      }
     }
     return { message };
   }

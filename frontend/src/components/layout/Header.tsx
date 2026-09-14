@@ -9,11 +9,14 @@ import { useTheme } from '@/components/layout/ThemeProvider';
 import Avatar from '@/components/ui/Avatar';
 import Dropdown from '@/components/ui/Dropdown';
 import {
-  Search, PenSquare, Menu, X, LogOut, User, Home, Shield, Sun, Moon, Monitor, FileText, Bookmark, MessageCircle, FolderTree,
+  Search, PenSquare, Menu, X, LogOut, User, Home, Shield, Sun, Moon, Monitor, FileText, Bookmark, MessageCircle, FolderTree, Bell,
 } from 'lucide-react';
+import { toPersianDigits } from '@/lib/utils';
+import { useUnreadCount } from '@/hooks/useUnreadCount';
 
 export default function Header() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { unread } = useUnreadCount();
   const logout = useAuthStore((s) => s.logout);
   const pathname = usePathname();
   const router = useRouter();
@@ -108,6 +111,26 @@ export default function Header() {
             >
               {theme === 'system' ? <Monitor className="h-5 w-5" /> : resolvedTheme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
             </button>
+
+            {isAuthenticated && !isLoading ? (
+              <Link
+                href="/notifications"
+                aria-label="اعلان‌ها"
+                title="اعلان‌ها"
+                className="relative p-2.5 rounded-xl transition-colors hover:bg-[var(--secondary)]"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                <Bell className="h-5 w-5" />
+                {unread > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center"
+                    style={{ background: 'var(--error)', color: '#fff' }}
+                  >
+                    {unread > 9 ? '۹+' : toPersianDigits(unread)}
+                  </span>
+                )}
+              </Link>
+            ) : null}
 
             {isLoading ? (
               <div className="h-9 w-9 rounded-full skeleton" />

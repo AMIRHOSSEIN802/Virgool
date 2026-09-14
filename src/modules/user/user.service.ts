@@ -37,6 +37,8 @@ import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { UserBlockDto } from '../auth/dto/auth.dto';
 import { UserStatus } from './enums/status.enum';
 import { Roles } from 'src/common/enums/role.eunm';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../notification/enums/type.enum';
 import { AdminUserFilterDto } from './dto/admin-users.dto';
 
 interface ProfileRaw {
@@ -57,6 +59,7 @@ export class UserService {
     private tokenService: TokensService,
     @InjectRepository(OtpEntity)
     private readonly OtpRepository: Repository<OtpEntity>,
+    private notificationService: NotificationService,
   ) {}
 
   async changeProfile(files: ProfileImages, profileDto: ProfileDto) {
@@ -502,6 +505,18 @@ export class UserService {
       await this.followRepository.remove(isFollowing);
     } else {
       await this.followRepository.insert({ followingId, followerId: userId });
+      // Notify the followed user only after the follow actually succeeded.
+      // followToggle cannot produce a duplicate follow (findOne guard above),
+      // and the notification's unread-dedup covers re-follow spam.
+      try {
+        await this.notificationService.push({
+          type: NotificationType.Follow,
+          recipientId: followingId,
+          actorId: userId,
+        });
+      } catch {
+        // notification failure must never fail the business action
+      }
     }
     return {
       message,

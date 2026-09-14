@@ -9,6 +9,7 @@ import { CategoryModule } from '../category/category.module';
 import { BlogModule } from '../blog/blog.module';
 import { AddUserToReqWOV } from 'src/common/middleware/addUserToReqWOV.middleware';
 import { ImageModule } from '../image/image.module';
+import { NotificationModule } from '../notification/notification.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -21,6 +22,7 @@ import { ImageModule } from '../image/image.module';
     CategoryModule,
     BlogModule,
     ImageModule,
+    NotificationModule,
   ],
   controllers: [],
   providers: [],

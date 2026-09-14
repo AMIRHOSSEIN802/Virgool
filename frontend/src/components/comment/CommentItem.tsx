@@ -6,8 +6,11 @@ import { formatDate, toPersianDigits } from '@/lib/utils';
 import { commentService } from '@/services/comment.service';
 import CommentForm from './CommentForm';
 import Avatar from '@/components/ui/Avatar';
+import Modal from '@/components/ui/Modal';
+import Button from '@/components/ui/Button';
+import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
-import { MessageCircle, Check, X, Loader2 } from 'lucide-react';
+import { MessageCircle, Check, X, Loader2, Pencil, Trash2 } from 'lucide-react';
 
 interface CommentItemProps {
   comment: CommentEntity;
@@ -31,10 +34,30 @@ export default function CommentItem({
   canModerate = false,
   onCommentAdded,
 }: CommentItemProps) {
+  const { user } = useAuth();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showChildren, setShowChildren] = useState(true);
   const [accepted, setAccepted] = useState(comment.accepted);
   const [modBusy, setModBusy] = useState<'accept' | 'reject' | null>(null);
+
+  // B7: author-only edit/delete. The backend enforces this too (403); hiding
+  // the buttons here is presentation, not authorization.
+  const isAuthor = !!user && !!user.id && comment.userId === user.id;
+
+  const [text, setText] = useState(comment.text);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Adopt refreshed server text when the parent re-fetches.
+  const [lastTextId, setLastTextId] = useState(`${comment.id}:${comment.text}`);
+  const incomingText = `${comment.id}:${comment.text}`;
+  if (lastTextId !== incomingText) {
+    setLastTextId(incomingText);
+    setText(comment.text);
+  }
 
   const authorName = comment.user?.profile?.nick_name || comment.user?.username || 'کاربر';
   const children = comment.children ?? [];
@@ -48,6 +71,51 @@ export default function CommentItem({
     setLastAdopted(incoming);
     setAccepted(comment.accepted);
   }
+
+  const startEdit = () => {
+    setDraft(text);
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    const trimmed = draft.trim();
+    if (trimmed.length < 5) {
+      toast.error('متن نظر باید حداقل ۵ کاراکتر باشد');
+      return;
+    }
+    if (saving) return; // guard double-submit
+    setSaving(true);
+    try {
+      await commentService.update(comment.id, trimmed);
+      setText(trimmed); // immediate UI update — no full reload needed
+      setEditing(false);
+      toast.success('نظر ویرایش شد');
+      onCommentAdded?.(); // re-fetch current page (pagination page is preserved)
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string | string[] } } })
+        .response?.data?.message;
+      toast.error((Array.isArray(message) ? message[0] : message) || 'خطا در ویرایش نظر');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteComment = async () => {
+    if (deleting) return; // guard double-click
+    setDeleting(true);
+    try {
+      await commentService.remove(comment.id);
+      toast.success('نظر حذف شد');
+      setConfirmDelete(false);
+      onCommentAdded?.(); // parent re-fetches the current page — no window.reload
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string | string[] } } })
+        .response?.data?.message;
+      toast.error((Array.isArray(message) ? message[0] : message) || 'خطا در حذف نظر');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const moderate = async (action: 'accept' | 'reject') => {
     if (modBusy) return;
@@ -83,9 +151,30 @@ export default function CommentItem({
               </span>
             )}
           </div>
-          <p className="text-sm leading-relaxed mb-2 whitespace-pre-wrap break-words" style={{ color: 'var(--text-secondary)' }}>
-            {comment.text}
-          </p>
+          {editing ? (
+            <div className="mb-2">
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] resize-none"
+                style={{ border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)' }}
+                rows={3}
+                maxLength={2000}
+              />
+              <div className="flex items-center gap-2 mt-2">
+                <Button size="sm" onClick={saveEdit} isLoading={saving} disabled={draft.trim().length < 5}>
+                  ذخیره
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={saving}>
+                  انصراف
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm leading-relaxed mb-2 whitespace-pre-wrap break-words" style={{ color: 'var(--text-secondary)' }}>
+              {text}
+            </p>
+          )}
           <div className="flex items-center gap-3 flex-wrap">
             {depth < 2 && (
               <button
@@ -105,6 +194,30 @@ export default function CommentItem({
               >
                 {showChildren ? 'مخفی کردن پاسخ‌ها' : `نمایش ${toPersianDigits(children.length)} پاسخ`}
               </button>
+            )}
+
+            {/* B7 author actions — edit/delete own comment (backend enforces) */}
+            {isAuthor && !editing && (
+              <>
+                <button
+                  onClick={startEdit}
+                  aria-label="ویرایش نظر"
+                  className="text-xs flex items-center gap-1 hover:opacity-80 font-medium"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  ویرایش
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  aria-label="حذف نظر"
+                  className="text-xs flex items-center gap-1 hover:opacity-80 font-medium"
+                  style={{ color: 'var(--error)' }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  حذف
+                </button>
+              </>
             )}
 
             {/* B5 moderation controls — visibility only; backend is the authority */}
@@ -176,6 +289,21 @@ export default function CommentItem({
           )}
         </div>
       </div>
+
+      {/* B7 delete confirmation — same Modal pattern as blog/my */}
+      <Modal isOpen={confirmDelete} onClose={() => !deleting && setConfirmDelete(false)} title="حذف نظر">
+        <p className="text-sm mb-5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          آیا از حذف این نظر مطمئن هستید؟ پاسخ‌های این نظر هم حذف خواهند شد و این عمل قابل بازگشت نیست.
+        </p>
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+            انصراف
+          </Button>
+          <Button variant="danger" size="sm" onClick={deleteComment} isLoading={deleting}>
+            حذف نظر
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

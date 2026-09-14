@@ -9,7 +9,7 @@ import { useTheme } from '@/components/layout/ThemeProvider';
 import Avatar from '@/components/ui/Avatar';
 import Dropdown from '@/components/ui/Dropdown';
 import {
-  Search, PenSquare, Menu, X, LogOut, User, Home, Shield, Sun, Moon, Monitor, FileText,
+  Search, PenSquare, Menu, X, LogOut, User, Home, Shield, Sun, Moon, Monitor, FileText, Bookmark, MessageCircle, FolderTree,
 } from 'lucide-react';
 
 export default function Header() {
@@ -146,9 +146,14 @@ export default function Header() {
                   </div>
                   <MenuLink href="/profile" icon={<User className="h-4 w-4" />}>پروفایل من</MenuLink>
                   <MenuLink href="/blog/my" icon={<FileText className="h-4 w-4" />}>مقالات من</MenuLink>
+                  <MenuLink href="/saved" icon={<Bookmark className="h-4 w-4" />}>ذخیره‌شده‌ها</MenuLink>
                   <MenuLink href="/profile/followers" icon={<User className="h-4 w-4" />}>دنبال‌کنندگان</MenuLink>
                   {user.role === 'admin' && (
-                    <MenuLink href="/admin" icon={<Shield className="h-4 w-4" />}>پنل مدیریت</MenuLink>
+                    <>
+                      <MenuLink href="/admin/users" icon={<Shield className="h-4 w-4" />}>مدیریت کاربران</MenuLink>
+                      <MenuLink href="/admin/categories" icon={<FolderTree className="h-4 w-4" />}>دسته‌بندی‌ها</MenuLink>
+                      <MenuLink href="/admin/comments" icon={<MessageCircle className="h-4 w-4" />}>تعدیل نظرها</MenuLink>
+                    </>
                   )}
                   <div className="my-1" style={{ borderTop: '1px solid var(--border)' }} />
                   <button
@@ -218,7 +223,11 @@ export default function Header() {
                   <MobileMenuLink href="/profile" icon={<User className="h-4 w-4" />} onClick={closeMobile}>پروفایل من</MobileMenuLink>
                   <MobileMenuLink href="/blog/my" icon={<FileText className="h-4 w-4" />} onClick={closeMobile}>مقالات من</MobileMenuLink>
                   {user.role === 'admin' && (
-                    <MobileMenuLink href="/admin" icon={<Shield className="h-4 w-4" />} onClick={closeMobile}>پنل مدیریت</MobileMenuLink>
+                    <>
+                      <MobileMenuLink href="/admin/users" icon={<Shield className="h-4 w-4" />} onClick={closeMobile}>مدیریت کاربران</MobileMenuLink>
+                      <MobileMenuLink href="/admin/categories" icon={<FolderTree className="h-4 w-4" />} onClick={closeMobile}>دسته‌بندی‌ها</MobileMenuLink>
+                      <MobileMenuLink href="/admin/comments" icon={<MessageCircle className="h-4 w-4" />} onClick={closeMobile}>تعدیل نظرها</MobileMenuLink>
+                    </>
                   )}
                   <div className="my-2" style={{ borderTop: '1px solid var(--border)' }} />
                   <button

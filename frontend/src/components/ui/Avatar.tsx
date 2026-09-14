@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { getImageUrl } from '@/lib/constants';
 
 interface AvatarProps {
@@ -22,7 +22,9 @@ const sizeClasses = {
   sm: 'h-8 w-8 text-xs',
   md: 'h-10 w-10 text-sm',
   lg: 'h-14 w-14 text-lg',
-  xl: 'h-20 w-20 text-xl',
+  // Profile header avatar: 72px on mobile, 80px on sm+ (rendered size is
+  // CSS-driven; the width/height props below stay 80 for intrinsic sizing).
+  xl: 'h-[72px] w-[72px] sm:h-20 sm:w-20 text-xl',
 };
 
 export default function Avatar({ src, alt = '', size = 'md', fallback }: AvatarProps) {
@@ -36,10 +38,14 @@ export default function Avatar({ src, alt = '', size = 'md', fallback }: AvatarP
 
   // A stored path can still fail to load (file deleted from disk, corrupt
   // upload, 404). Degrade to the initials fallback instead of a broken img.
+  // Render-time state adjustment (React-recommended, no effect): reset the
+  // failure flag whenever the resolved URL changes.
   const [failed, setFailed] = useState(false);
-  useEffect(() => {
+  const [failedFor, setFailedFor] = useState(url);
+  if (failedFor !== url) {
+    setFailedFor(url);
     setFailed(false);
-  }, [url]);
+  }
 
   if (url && !failed) {
     return (

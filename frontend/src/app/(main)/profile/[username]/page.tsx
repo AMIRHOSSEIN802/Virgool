@@ -8,15 +8,12 @@ import { BlogListBlog } from '@/types/blog.types';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { useAuth } from '@/hooks/useAuth';
 import BlogCard from '@/components/blog/BlogCard';
-import Avatar from '@/components/ui/Avatar';
+import ProfileHeader from '@/components/profile/ProfileHeader';
 import Spinner from '@/components/ui/Spinner';
 import ErrorState from '@/components/ui/ErrorState';
 import EmptyState from '@/components/ui/EmptyState';
 import Button from '@/components/ui/Button';
-import { getImageUrl } from '@/lib/constants';
-import { formatNumber } from '@/lib/utils';
-import Image from 'next/image';
-import { UserPlus, UserCheck, ArrowRight, Users, UserCheck as UserCheckIcon } from 'lucide-react';
+import { UserPlus, UserCheck, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
@@ -147,94 +144,35 @@ export default function PublicProfilePage() {
   const displayName = profile.profile.nick_name || profile.username;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-      {/* Profile header */}
-      <div
-        className="rounded-2xl overflow-hidden shadow-sm"
-        style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-      >
-        <div
-          className="relative h-28 sm:h-40"
-          style={
-            profile.profile.bg_image
-              ? undefined
-              : { background: 'linear-gradient(120deg, var(--primary) 0%, var(--accent) 100%)' }
-          }
-        >
-          {profile.profile.bg_image && getImageUrl(profile.profile.bg_image) && (
-            <Image
-              src={getImageUrl(profile.profile.bg_image)!}
-              alt="کاور پروفایل"
-              fill
-              sizes="(max-width: 640px) 100vw, 896px"
-              className="object-cover"
-            />
-          )}
-        </div>
-
-        <div className="px-4 sm:px-6 pb-6">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-10 sm:-mt-12">
-            <div className="rounded-full p-1 shrink-0" style={{ background: 'var(--surface)' }}>
-              <Avatar
-                src={profile.profile.image_profile}
-                alt={displayName}
-                size="xl"
-                fallback={displayName}
-              />
-            </div>
-            <div className="flex-1 min-w-0 pb-1">
-              <h1 className="text-xl sm:text-2xl font-extrabold truncate" style={{ color: 'var(--text-primary)' }}>
-                {displayName}
-              </h1>
-              <p className="text-sm mt-0.5" dir="ltr" style={{ color: 'var(--text-tertiary)', textAlign: 'right' }}>
-                @{profile.username}
-              </p>
-            </div>
-            <Button
-              variant={isFollowing ? 'outline' : 'primary'}
-              onClick={handleFollowClick}
-              disabled={followBusy}
-              className="shrink-0"
-            >
-              {isFollowing ? (
-                <>
-                  <UserCheck className="h-4 w-4 ml-1.5" />
-                  دنبال می‌کنید
-                </>
-              ) : (
-                <>
-                  <UserPlus className="h-4 w-4 ml-1.5" />
-                  دنبال کردن
-                </>
-              )}
-            </Button>
-          </div>
-
-          {profile.profile.bio && (
-            <p className="mt-4 text-sm leading-7" style={{ color: 'var(--text-secondary)' }}>
-              {profile.profile.bio}
-            </p>
-          )}
-
-          {/* Follow stats — from the public endpoint */}
-          <div className="flex items-center gap-6 mt-4">
-            <span className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
-              <Users className="h-4 w-4" style={{ color: 'var(--primary)' }} />
-              <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                {formatNumber(followersCount)}
-              </span>
-              دنبال‌کننده
-            </span>
-            <span className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
-              <UserCheckIcon className="h-4 w-4" style={{ color: 'var(--primary)' }} />
-              <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                {formatNumber(profile.followingCount)}
-              </span>
-              دنبال‌شده
-            </span>
-          </div>
-        </div>
-      </div>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <ProfileHeader
+        username={profile.username}
+        nickName={profile.profile.nick_name}
+        bio={profile.profile.bio}
+        avatarPath={profile.profile.image_profile}
+        coverPath={profile.profile.bg_image}
+        followersCount={followersCount}
+        followingCount={profile.followingCount}
+        action={
+          <Button
+            variant={isFollowing ? 'outline' : 'primary'}
+            onClick={handleFollowClick}
+            disabled={followBusy}
+          >
+            {isFollowing ? (
+              <>
+                <UserCheck className="h-4 w-4 ms-1.5" />
+                دنبال می‌کنید
+              </>
+            ) : (
+              <>
+                <UserPlus className="h-4 w-4 ms-1.5" />
+                دنبال کردن
+              </>
+            )}
+          </Button>
+        }
+      />
 
       {/* Author blogs */}
       <section>

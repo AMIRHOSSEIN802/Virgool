@@ -15,7 +15,6 @@ import { useAsyncData } from '@/hooks/useAsyncData';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Camera, Mail, Phone, AtSign, X } from 'lucide-react';
-
 function ProfileContent() {
   const profileQuery = useAsyncData<ProfileWithCounts>(
     () => userService.getProfile(),
@@ -182,7 +181,21 @@ function ProfileContent() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      <ProfileHeader profile={profile} isOwn />
+      <ProfileHeader
+        username={profile.username}
+        nickName={profile.profile?.nick_name}
+        bio={profile.profile?.bio}
+        avatarPath={profile.profile?.image_profile}
+        coverPath={profile.profile?.bg_image}
+        followersCount={profile.followersCount}
+        followingCount={profile.followingCount}
+        birthday={profile.profile?.birthday}
+        linkedinUrl={profile.profile?.linkedin_profile}
+        xUrl={profile.profile?.x_profile}
+        isOwn
+        followersHref="/profile/followers"
+        followingHref="/profile/following"
+      />
 
       {/* Account Settings */}
       <section className="rounded-2xl p-5 shadow-sm" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>

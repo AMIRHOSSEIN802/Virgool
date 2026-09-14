@@ -7,6 +7,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CategoryEntity } from './entities/category.entity';
+import { BlogCategoryEntity } from 'src/modules/blog/entities/blog-category.entity';
 import { Repository } from 'typeorm';
 import {
   ConflictMessage,
@@ -57,10 +58,25 @@ export class CategoryService {
       where: {},
       skip,
       take: limit,
+      order: { id: 'ASC' },
     });
+    // Real per-category blog usage (admin list shows it; public consumers
+    // ignore the extra field). One grouped query — no N+1, nothing invented.
+    let usage = new Map<number, number>();
+    if (categories.length > 0) {
+      const rows: { categoryId: number; n: string }[] = await this.categoryRepository.manager
+        .getRepository(BlogCategoryEntity)
+        .createQueryBuilder('bc')
+        .select('bc.categoryId', 'categoryId')
+        .addSelect('COUNT(*)', 'n')
+        .where('bc.categoryId IN (:...ids)', { ids: categories.map((c) => c.id) })
+        .groupBy('bc.categoryId')
+        .getRawMany();
+      usage = new Map(rows.map((r) => [Number(r.categoryId), Number(r.n)]));
+    }
     return {
       pagination: paginationGenerator(count, page, limit),
-      categories,
+      categories: categories.map((c) => ({ ...c, blogCount: usage.get(c.id) ?? 0 })),
     };
   }
 
@@ -77,8 +93,17 @@ export class CategoryService {
   async update(id: number, updateCategoryDto: UpdateCategoryDto) {
     const category = await this.findOne(id);
     const { priority, title } = updateCategoryDto;
-    if (title) category.title = title;
-    if (priority) category.priority = priority;
+    if (title) {
+      // Normalized like create; the duplicate check must ignore the row's own
+      // id (renaming "abc" → "ABC" resolves to the same title and is a no-op).
+      const resolved = title.trim().toLowerCase();
+      const clash = await this.categoryRepository.findOneBy({ title: resolved });
+      if (clash && clash.id !== id) {
+        throw new ConflictException(ConflictMessage.CategoryTitle);
+      }
+      category.title = resolved;
+    }
+    if (priority !== undefined && priority !== null) category.priority = priority;
     await this.categoryRepository.save(category);
     return {
       message: PublicMessage.Updated,

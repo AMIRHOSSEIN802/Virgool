@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -9,6 +9,8 @@ import LinkExtension from '@tiptap/extension-link';
 import ImageExtension from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
 import { blogService } from '@/services/blog.service';
+import { imageService } from '@/services/image.service';
+import { getImageUrl } from '@/lib/constants';
 import { categoryService } from '@/services/category.service';
 import { CategoryEntity } from '@/types/category.types';
 import Input from '@/components/ui/Input';
@@ -17,7 +19,7 @@ import Button from '@/components/ui/Button';
 import AuthGuard from '@/components/auth/AuthGuard';
 import toast from 'react-hot-toast';
 import {
-  Bold, Italic, Heading1, Heading2, List, Quote, Code, Image as ImageIcon,
+  Bold, Italic, Heading1, Heading2, List, Quote, Code, Image as ImageIcon, Loader2,
   Link as LinkIcon, AlignCenter, AlignLeft, AlignRight, ListOrdered, Undo2, Redo2, X, Plus,
 } from 'lucide-react';
 
@@ -171,9 +173,48 @@ function BlogEditorContent() {
     (c) => !selectedCategories.includes(c.title)
   );
 
+  // Editor image upload — uses the existing POST /image endpoint (same
+  // infrastructure as the rest of the app). The URL prompt is gone: selecting
+  // a file uploads it and inserts the returned image at the cursor.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   const addImage = () => {
-    const url = window.prompt('آدرس تصویر را وارد کنید:');
-    if (url) editor?.chain().focus().setImage({ src: url }).run();
+    if (uploadingImage) return; // one upload at a time
+    fileInputRef.current?.click();
+  };
+
+  const handleImageFile = async (file: File | undefined) => {
+    const input = fileInputRef.current;
+    if (input) input.value = ''; // always allow re-picking the same file
+    if (!file) return;
+    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) {
+      toast.error('فقط فایل‌های تصویری مجاز هستند');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('حجم تصویر باید کمتر از ۵ مگابایت باشد');
+      return;
+    }
+    if (uploadingImage) return;
+    setUploadingImage(true);
+    const loadingId = toast.loading('در حال آپلود تصویر...');
+    try {
+      const res = await imageService.upload(file, file.name, file.name);
+      const location = res.image?.location;
+      if (!location) throw new Error('no location');
+      const url = getImageUrl(location);
+      if (!url) throw new Error('invalid location');
+      // Insert at the current cursor; existing content is untouched.
+      editor?.chain().focus().setImage({ src: url, alt: file.name }).run();
+      toast.dismiss(loadingId);
+      toast.success('تصویر اضافه شد');
+    } catch {
+      toast.dismiss(loadingId);
+      toast.error('خطا در آپلود تصویر');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const addLink = () => {
@@ -311,7 +352,25 @@ function BlogEditorContent() {
           <button type="button" aria-label="نقل قول" onClick={() => editor?.chain().focus().toggleBlockquote().run()} className={toolbarBtnClass} style={editor?.isActive('blockquote') ? activeStyle : idleStyle}><Quote className="h-4 w-4" /></button>
           <button type="button" aria-label="بلوک کد" onClick={() => editor?.chain().focus().toggleCodeBlock().run()} className={toolbarBtnClass} style={editor?.isActive('codeBlock') ? activeStyle : idleStyle}><Code className="h-4 w-4" /></button>
           {divider}
-          <button type="button" aria-label="تصویر" onClick={addImage} className={toolbarBtnClass} style={idleStyle}><ImageIcon className="h-4 w-4" /></button>
+          <button
+            type="button"
+            aria-label="درج تصویر از فایل"
+            title="درج تصویر از فایل"
+            onClick={addImage}
+            disabled={uploadingImage}
+            className={`${toolbarBtnClass} disabled:opacity-50`}
+            style={uploadingImage ? activeStyle : idleStyle}
+          >
+            {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            aria-hidden
+            onChange={(e) => void handleImageFile(e.target.files?.[0])}
+          />
           <button type="button" aria-label="لینک" onClick={addLink} className={toolbarBtnClass} style={editor?.isActive('link') ? activeStyle : idleStyle}><LinkIcon className="h-4 w-4" /></button>
           {divider}
           <button type="button" aria-label="چپ‌چین" onClick={() => editor?.chain().focus().setTextAlign('left').run()} className={toolbarBtnClass} style={editor?.isActive({ textAlign: 'left' }) ? activeStyle : idleStyle}><AlignLeft className="h-4 w-4" /></button>

@@ -9,7 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { BlogEntity } from '../entities/blog.entity';
 import { IsNull, Repository } from 'typeorm';
-import { CreateCommentDto } from '../dto/comment.dto';
+import { CreateCommentDto, UpdateCommentDto } from '../dto/comment.dto';
 import { BlogService } from './blog.service';
 import { BlogCommenrtEntity } from '../entities/comment.entity';
 import {
@@ -66,10 +66,15 @@ export class BlogCommentService {
       message: PublicMessage.CreatedComment,
     };
   }
-  async find(paginationDto: PaginationDto) {
+  async find(paginationDto: PaginationDto, accepted?: string) {
     const { limit, page, skip } = paginationSolver(paginationDto);
+    // Admin moderation filter: 'true' → accepted, 'false' → rejected,
+    // anything else (unset/invalid) → all comments.
+    const where: Record<string, unknown> = {};
+    if (accepted === 'true') where.accepted = true;
+    else if (accepted === 'false') where.accepted = false;
     const [comments, count] = await this.blogCommentRepository.findAndCount({
-      where: {},
+      where,
       relations: {
         blog: true,
         user: { profile: true },
@@ -119,6 +124,14 @@ export class BlogCommentService {
           },
         },
         children: {
+          // id + accepted must be selected: the frontend uses child.id as the
+          // React list key (omitting it collapses every reply to key={undefined}
+          // → "unique key" warnings) and shows the rejected badge from .accepted.
+          // userId is selected so the frontend can identify the reply author
+          // for edit/delete visibility without trusting anything from the client.
+          id: true,
+          userId: true,
+          accepted: true,
           text: true,
           created_at: true,
           parentId: true,
@@ -129,6 +142,9 @@ export class BlogCommentService {
             },
           },
           children: {
+            id: true,
+            userId: true,
+            accepted: true,
             text: true,
             created_at: true,
             parentId: true,
@@ -155,6 +171,40 @@ export class BlogCommentService {
     // 404-first (consistent with blog resource checks in B1/B3)
     if (!comment) throw new NotFoundException(NotFoundMessage.NotFound);
     return comment;
+  }
+  /**
+   * B7: only the comment author may edit/delete their own comment; Admins may
+   * moderate any comment (consistent with the accept/reject policy above).
+   * Ownership is derived from the DB record + req.user — never from the body.
+   */
+  private assertCommentAuthor(comment: BlogCommenrtEntity, user: UserEntity) {
+    if (user.role === Roles.Admin) return;
+    if (comment.userId === user.id) return;
+    throw new ForbiddenException(ForbiddenMessage.AccessDenied);
+  }
+  async update(id: number, dto: UpdateCommentDto, user: UserEntity) {
+    const comment = await this.checkExistCommentById(id);
+    this.assertCommentAuthor(comment, user);
+    // Whitelist: only text changes. userId/blogId/parentId/accepted cannot be
+    // touched here even if a hostile body carries them (they are absent from
+    // UpdateCommentDto and ValidationPipe strips unknown properties).
+    comment.text = dto.text;
+    await this.blogCommentRepository.save(comment);
+    return {
+      message: PublicMessage.Updated,
+      comment: { id: comment.id, text: comment.text, accepted: comment.accepted },
+    };
+  }
+  async remove(id: number, user: UserEntity) {
+    const comment = await this.checkExistCommentById(id);
+    this.assertCommentAuthor(comment, user);
+    // The parentId FK is ON DELETE CASCADE (verified in PostgreSQL), so replies
+    // to a deleted comment are removed by the database — the project's own
+    // semantics for nested comments. Blog/user FKs are CASCADE as well.
+    await this.blogCommentRepository.remove(comment);
+    return {
+      message: PublicMessage.Deleted,
+    };
   }
   async accept(id: number, user: UserEntity) {
     const comment = await this.checkExistCommentById(id);

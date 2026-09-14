@@ -28,7 +28,7 @@ export const categoryService = {
   },
 
   async remove(id: number): Promise<{ message: string }> {
-    const res = await api.delete(`/category/${id}`);
+    const res = await api.delete<{ message: string }>(`/category/${id}`);
     return res.data;
   },
 };

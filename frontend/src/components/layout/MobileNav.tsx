@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Home, Search, PenSquare, User } from 'lucide-react';
+import { Home, Search, PenSquare, Bookmark, User } from 'lucide-react';
 
 export default function MobileNav() {
   const pathname = usePathname();
@@ -15,6 +15,7 @@ export default function MobileNav() {
     ...(isAuthenticated
       ? [
           { href: '/blog/create', icon: PenSquare, label: 'نوشتن' },
+          { href: '/saved', icon: Bookmark, label: 'ذخیره‌ها' },
           { href: '/profile', icon: User, label: 'پروفایل' },
         ]
       : []),

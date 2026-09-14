@@ -59,6 +59,11 @@ export class BlogController {
   likeToggle(@Param('id', ParseIntPipe) id: number) {
     return this.blogService.LikeToggle(id);
   }
+  @Get('/bookmark/my')
+  @Pagination()
+  myBookmarks(@Query() paginationDto: PaginationDto) {
+    return this.blogService.myBookmarks(paginationDto);
+  }
   @Get('/bookmark/:id')
   bookmarkToggle(@Param('id', ParseIntPipe) id: number) {
     return this.blogService.bookmarkToggle(id);

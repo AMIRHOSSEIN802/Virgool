@@ -4,19 +4,26 @@ import Link from 'next/link';
 import { BlogListBlog } from '@/types/blog.types';
 import { getImageUrl } from '@/lib/constants';
 import { formatDate, toPersianDigits } from '@/lib/utils';
-import { Clock, Heart, MessageCircle, Loader2 } from 'lucide-react';
+import { Clock, Heart, MessageCircle, Bookmark, Loader2 } from 'lucide-react';
 import Avatar from '@/components/ui/Avatar';
 import Image from 'next/image';
 import { useBlogLike } from '@/hooks/useBlogLike';
+import { useBlogBookmark } from '@/hooks/useBlogBookmark';
 import { useRouter } from 'next/navigation';
 
 interface BlogCardProps {
   blog: BlogListBlog;
   /** Like state reported back to the list owner (e.g. for infinite-scroll sync). */
   onLikeChange?: (blogId: number, liked: boolean, count: number) => void;
+  /**
+   * Saved-posts list only: renders a filled bookmark button that unsaves the
+   * blog from the card. Omitted everywhere else — homepage/feed cards are
+   * visually unchanged.
+   */
+  onUnsaved?: (blogId: number) => void;
 }
 
-export default function BlogCard({ blog, onLikeChange }: BlogCardProps) {
+export default function BlogCard({ blog, onLikeChange, onUnsaved }: BlogCardProps) {
   const router = useRouter();
   const authorName = blog.author?.profile?.nick_name || blog.author?.username || 'نویسنده';
   const authorImage =
@@ -31,6 +38,14 @@ export default function BlogCard({ blog, onLikeChange }: BlogCardProps) {
     onRequireAuth: () =>
       router.push(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`),
     onLikeChange,
+  });
+
+  const bookmark = useBlogBookmark({
+    blogId: blog.id,
+    initialSaved: blog.isBookmarked,
+    onRequireAuth: () =>
+      router.push(`/auth?redirect=${encodeURIComponent(window.location.pathname)}`),
+    onSaveChange: onUnsaved ? (id, saved) => { if (!saved) onUnsaved(id); } : undefined,
   });
 
   const blogHref = `/blog/${encodeURIComponent(blog.slug)}`;
@@ -140,6 +155,30 @@ export default function BlogCard({ blog, onLikeChange }: BlogCardProps) {
               )}
               <span>{toPersianDigits(like.count)}</span>
             </button>
+
+            {/* Saved list only: one-tap remove from saved */}
+            {onUnsaved && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  bookmark.toggle();
+                }}
+                disabled={bookmark.isPending}
+                aria-pressed={bookmark.saved}
+                aria-label={bookmark.saved ? 'حذف از ذخیره‌شده‌ها' : 'افزودن به ذخیره‌شده‌ها'}
+                title={bookmark.saved ? 'حذف از ذخیره‌شده‌ها' : 'ذخیره'}
+                className="flex items-center gap-1 px-1.5 py-1 rounded-full transition-all active:scale-90 disabled:opacity-60 hover:bg-[var(--secondary)]"
+                style={{ color: bookmark.saved ? 'var(--primary)' : 'var(--text-tertiary)' }}
+              >
+                {bookmark.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Bookmark className={`h-3.5 w-3.5 ${bookmark.saved ? 'fill-current' : ''}`} />
+                )}
+              </button>
+            )}
 
             {blog.commentCount !== undefined && (
               <Link

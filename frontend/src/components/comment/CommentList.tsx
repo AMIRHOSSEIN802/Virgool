@@ -19,12 +19,16 @@ interface CommentListProps {
   /** True when the viewer is the blog author or an Admin. */
   canModerate?: boolean;
   onRefresh?: () => void;
+  /** Change the server-side page of top-level comments. */
+  onPageChange: (page: number) => void;
 }
 
 /**
  * Top-level comment list for the blog detail page.
  * `onRefresh` re-fetches the whole blog (comments included) — the parent owns
  * the single source of truth, so we never keep a second mutable copy here.
+ * Pagination is server-side: `onPageChange` sets the page the parent requests
+ * from GET /blog/by-slug/:slug?page=N (comments REPLACE, never append).
  * `canModerate` only controls UI visibility; the backend is the authority.
  */
 export default function CommentList({
@@ -33,6 +37,7 @@ export default function CommentList({
   pagination,
   canModerate = false,
   onRefresh,
+  onPageChange,
 }: CommentListProps) {
   return (
     <section aria-label="نظرات">
@@ -43,7 +48,14 @@ export default function CommentList({
         </h3>
       </div>
 
-      <CommentForm blogId={blogId} onCommentAdded={onRefresh} />
+      <CommentForm
+        blogId={blogId}
+        onCommentAdded={() => {
+          // A new top-level comment lands on page 1 (order: id DESC) — show it.
+          onPageChange(1);
+          onRefresh?.();
+        }}
+      />
 
       <div className="mt-4">
         {comments.length === 0 ? (
@@ -73,11 +85,7 @@ export default function CommentList({
           <Pagination
             page={pagination.page}
             pageCount={pagination.pageCount}
-            onPageChange={() => {
-              // Comment pagination is server-side via the blog query; refresh keeps page 1
-              // until the detail endpoint exposes a page param — backend contract unchanged.
-              onRefresh?.();
-            }}
+            onPageChange={onPageChange}
           />
         </div>
       )}

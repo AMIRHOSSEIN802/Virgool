@@ -36,6 +36,8 @@ import {
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { UserBlockDto } from '../auth/dto/auth.dto';
 import { UserStatus } from './enums/status.enum';
+import { Roles } from 'src/common/enums/role.eunm';
+import { AdminUserFilterDto } from './dto/admin-users.dto';
 
 interface ProfileRaw {
   followersCount: string;
@@ -119,10 +121,53 @@ export class UserService {
     };
   }
 
-  find() {
-    return this.userRepository.find({
-      where: {},
-    });
+  /**
+   * Admin user directory: paginated, searchable (username/nickname/email/
+   * phone), role-filterable. Only non-sensitive columns are selected — the
+   * password hash is NEVER part of this payload.
+   */
+  async adminUsers(paginationDto: PaginationDto, filter: AdminUserFilterDto) {
+    const { limit, page, skip } = paginationSolver(paginationDto);
+    const { search, role } = filter;
+
+    // select() REPLACES the selection, so it must come BEFORE addSelect() —
+    // only whitelisted columns (no password/otpId/tokens), plus the profile
+    // columns the admin list displays.
+    const qb = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.profile', 'profile')
+      .select([
+        'user.id',
+        'user.username',
+        'user.email',
+        'user.phone',
+        'user.role',
+        'user.status',
+        'user.created_at',
+      ])
+      // profile.id must be selected for TypeORM to attach the relation object
+      .addSelect(['profile.id', 'profile.nick_name', 'profile.image_profile']);
+
+    if (role === Roles.Admin || role === Roles.User) {
+      qb.andWhere('user.role = :role', { role });
+    }
+    if (search) {
+      const term = String(search).trim();
+      if (term) {
+        const escaped = term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+        qb.andWhere(
+          '(user.username ILIKE :search OR profile.nick_name ILIKE :search OR user.email ILIKE :search OR user.phone ILIKE :search)',
+          { search: `%${escaped}%` },
+        );
+      }
+    }
+
+    const [users, count] = await qb.orderBy('user.id', 'DESC').skip(skip).take(limit).getManyAndCount();
+
+    return {
+      pagination: paginationGenerator(count, page, limit),
+      users,
+    };
   }
 
   async followers(paginationDto: PaginationDto) {

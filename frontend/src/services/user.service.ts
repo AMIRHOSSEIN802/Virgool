@@ -2,7 +2,7 @@ import api from '@/lib/api';
 import type { ProfileDto, ProfileWithCounts } from '@/types/auth.types';
 import type { PublicProfile } from '@/types/profile.types';
 import type { FollowEntity } from '@/types/follow.types';
-import type { UserListItem } from '@/types/follow.types';
+import type { AdminUsersResponse } from '@/types/follow.types';
 import type { PaginationMeta } from '@/types/api.types';
 
 export const userService = {
@@ -47,8 +47,18 @@ export const userService = {
     return res.data;
   },
 
-  async listUsers(): Promise<UserListItem[]> {
-    const res = await api.get<UserListItem[]>('/user/list');
+  /**
+   * Admin user directory (GET /user/list — admin-only). Filters: free-text
+   * search over username/nickname/email/phone + exact role.
+   */
+  async listUsers(params: { page?: number; limit?: number; search?: string; role?: string } = {}): Promise<AdminUsersResponse> {
+    const query: Record<string, string | number> = {
+      page: params.page ?? 1,
+      limit: params.limit ?? 10,
+    };
+    if (params.search) query.search = params.search;
+    if (params.role && params.role !== 'all') query.role = params.role;
+    const res = await api.get<AdminUsersResponse>('/user/list', { params: query });
     return res.data;
   },
 

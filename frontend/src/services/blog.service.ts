@@ -58,6 +58,14 @@ export const blogService = {
     return res.data;
   },
 
+  /** Saved posts of the current user — { pagination, blogs }, like blogList. */
+  async myBookmarks(page = 1, limit = 10): Promise<BlogListResponse> {
+    const res = await api.get<BlogListResponse>('/blog/bookmark/my', {
+      params: { page, limit },
+    });
+    return res.data;
+  },
+
   async delete(id: number): Promise<{ message: string }> {
     const res = await api.delete(`/blog/${id}`);
     return res.data;

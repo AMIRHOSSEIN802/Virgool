@@ -31,9 +31,21 @@ export default function BlogDetailPage() {
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
   const { user: currentUser } = useAuth();
 
+  // Server-side comment pagination (same local-state pattern as Followers page).
+  // The detail endpoint returns the requested page of top-level comments.
+  const [commentsPage, setCommentsPage] = useState(1);
+
+  // Navigating from one blog to another resets to page 1 (render-time state
+  // adjustment — the React-recommended alternative to setState in effects).
+  const [pageSlug, setPageSlug] = useState(slug);
+  if (pageSlug !== slug) {
+    setPageSlug(slug);
+    setCommentsPage(1);
+  }
+
   const query = useAsyncData<BlogDetailResponse>(
-    () => blogService.getBySlug(slug),
-    [slug, version],
+    () => blogService.getBySlug(slug, commentsPage),
+    [slug, version, commentsPage],
     { errorMessage: 'خطا در بارگذاری مقاله' }
   );
 
@@ -187,6 +199,7 @@ export default function BlogDetailPage() {
               comments={commentsData.comments}
               pagination={commentsData.pagination}
               onRefresh={refresh}
+              onPageChange={setCommentsPage}
               canModerate={canModerateComments}
             />
           </div>

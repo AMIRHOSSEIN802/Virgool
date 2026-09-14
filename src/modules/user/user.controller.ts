@@ -32,6 +32,7 @@ import type { Response } from 'express';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { CookiesOptionsToken } from 'src/common/utils/cookie.util';
 import { CheckOtpDto, UserBlockDto } from '../auth/dto/auth.dto';
+import { AdminUserFilterDto } from './dto/admin-users.dto';
 import { PublicMessage } from 'src/common/enums/message.enum';
 import { Pagination } from 'src/common/decorators/pagination.decorator';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
@@ -78,9 +79,15 @@ export class UserController {
     return this.userService.profile();
   }
   @Get('/list')
+  @Pagination()
+  @CanAccess(Roles.Admin)
+  @UseGuards(RoleGuard)
   @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
-  find() {
-    return this.userService.find();
+  find(
+    @Query() paginationDto: PaginationDto,
+    @Query() filterDto: AdminUserFilterDto,
+  ) {
+    return this.userService.adminUsers(paginationDto, filterDto);
   }
   @Get('/followers')
   @Pagination()

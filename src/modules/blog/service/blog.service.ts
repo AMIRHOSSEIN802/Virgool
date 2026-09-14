@@ -137,10 +137,19 @@ export class BlogService {
     }
 
     if (search) {
-      search = `%${search}%`;
-      where +=
-        ' AND CONCAT(blog.title, blog.description, blog.content) ILIKE :search';
-      parameters.search = search;
+      // Trim first: a whitespace-only query must behave as "no query" instead
+      // of matching every post that contains a space.
+      const term = String(search).trim();
+      if (term) {
+        // MVP scope: title + description only — never raw HTML content
+        // (markup words would leak into matches). ILIKE = case-insensitive.
+        // % and _ are LIKE wildcards: escape them so the user's input is
+        // treated as literal data (also neutralizes injection attempts,
+        // which is already parameter-bound).
+        const escaped = term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+        where += ' AND (blog.title ILIKE :search OR blog.description ILIKE :search)';
+        parameters.search = `%${escaped}%`;
+      }
     }
     const [blogs, count] = await this.blogRepository
       .createQueryBuilder(EntityName.blog)
@@ -367,6 +376,64 @@ export class BlogService {
       });
     }
     return { message };
+  }
+  /**
+   * Saved posts (bookmarks) of the AUTHENTICATED user only — ownership comes
+   * from req.user, never from the request. Two batched queries (no N+1):
+   *  1) the user's bookmark rows, paginated newest-first;
+   *  2) the referenced blogs filtered to PUBLISHED (drafts/deleted never leak).
+   * Same response contract as blogList: { pagination, blogs }.
+   */
+  async myBookmarks(paginationDto: PaginationDto) {
+    const { id: userId } = this.request.user;
+    const { limit, page, skip } = paginationSolver(paginationDto);
+
+    const [bookmarks, count] = await this.blogbookmarkRepository.findAndCount({
+      where: { userId },
+      order: { id: 'DESC' },
+      skip,
+      take: limit,
+      select: { id: true, blogId: true },
+    });
+
+    let blogs: BlogEntity[] = [];
+    let likedIds = new Set<number>();
+    if (bookmarks.length > 0) {
+      const blogIds = bookmarks.map((b) => b.blogId);
+      const [found, likes] = await Promise.all([
+        this.blogRepository
+          .createQueryBuilder(EntityName.blog)
+          .innerJoin('blog.author', 'author')
+          .innerJoin('author.profile', 'profile')
+          .leftJoin('blog.categories', 'blogCategory')
+          .leftJoin('blogCategory.category', 'category')
+          .addSelect(['author.username', 'author.id', 'profile.nick_name'])
+          .where('blog.id IN (:...blogIds)', { blogIds })
+          .andWhere('blog.status = :status', { status: BlogStatus.Published })
+          .getMany(),
+        this.blogLikeRepository
+          .createQueryBuilder('like')
+          .where('like.userId = :userId', { userId })
+          .andWhere('like.blogId IN (:...blogIds)', { blogIds })
+          .getMany(),
+      ]);
+      const byId = new Map(found.map((b) => [b.id, b]));
+      // Preserve bookmark order (newest saved first); a blog that became a
+      // draft/deleted since bookmarking is simply absent.
+      blogs = blogIds
+        .map((id) => byId.get(id))
+        .filter((b): b is BlogEntity => b !== undefined);
+      likedIds = new Set(likes.map((l) => l.blogId));
+    }
+
+    return {
+      pagination: paginationGenerator(count, page, limit),
+      blogs: blogs.map((blog) => ({
+        ...blog,
+        isLiked: likedIds.has(blog.id),
+        isBookmarked: true,
+      })),
+    };
   }
   async findOneBySlug(slug: string, paginationDto: PaginationDto) {
     const user = this.request?.user as UserEntity | undefined;

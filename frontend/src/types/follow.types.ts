@@ -34,8 +34,15 @@ export interface UserListItem {
   phone: string | null;
   role: 'admin' | 'user';
   status: 'active' | 'block' | null;
+  created_at?: string;
   profile?: {
     nick_name: string;
     image_profile: string | null;
   };
+}
+
+/** GET /user/list (admin-only): paginated, whitelisted columns only. */
+export interface AdminUsersResponse {
+  pagination: import('./api.types').PaginationMeta;
+  users: UserListItem[];
 }

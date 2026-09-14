@@ -19,14 +19,17 @@ export class ImageService {
     const userId = this.req.user.id;
     const { alt, name } = imageDto;
     const location = image?.path?.slice(7);
-    await this.imageRepository.insert({
+    const result = await this.imageRepository.insert({
       alt: alt || name,
       name,
       location,
       userId,
     });
+    // Return the stored identity so clients (editor image insert) can build a
+    // URL immediately without guessing — insert() does not echo the entity.
     return {
       message: PublicMessage.Created,
+      image: { id: Number(result.identifiers?.[0]?.id ?? 0), location },
     };
   }
 

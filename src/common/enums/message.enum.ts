@@ -6,6 +6,7 @@ export enum BadRequestMessage {
   AlreadyAccepted = 'کامنت شما قبلا تایید شده است',
   AlreadyRejected = 'کامنت شما قبلا رد شده است',
   cannotfollow = 'نمیتونید خودتون را دنبال کنید',
+  InvalidUsernameConfirmation = 'نام کاربری وارد شده برای تایید حذف حساب صحیح نیست',
 }
 export enum AuthMessage {
   NotFoundAccount = 'حساب کاربری یافت نشد',
@@ -33,6 +34,7 @@ export enum PublicMessage {
   Blocked = 'حساب کاربری با موفقیت مسدود شد',
   UnBlocked = 'حساب کاربری از حالت مسدود خارج شد',
   Published = 'مقاله با موفقیت منتشر شد',
+  AccountDeleted = 'حساب کاربری شما با موفقیت حذف شد',
 }
 
 export enum NotFoundMessage {
@@ -47,6 +49,7 @@ export enum ConflictMessage {
   Email = 'ایمیل اشتباه است',
   Phone = 'شماره موبایل اشتباه است',
   username = 'نام کاربری اشتباه است',
+  LastAdmin = 'امکان حذف حساب آخرین مدیر سیستم وجود ندارد',
 }
 export enum ForbiddenMessage {
   AccessDenied = 'شما دسترسی لازم برای این عملیات را ندارید',
@@ -59,4 +62,10 @@ export enum ValidationMessage {
   InvalidImageFormat = 'فرمت تصویر انتخاب شده باید از نوع jpg , png باشد',
   InvalidEmailFormat = 'ایمیل وارد شده صحیح نمی باشد',
   InvalidPhoneFormat = 'شماره موبایل وارد شده صحیح نمی باشد',
+}
+
+export enum OtpDeliveryError {
+  NotConfigured = 'ارسال کد تایید پیکربندی نشده است، لطفا با پشتیبانی تماس بگیرید',
+  Failed = 'ارسال کد تایید با خطا مواجه شد، لطفا دوباره تلاش کنید',
+  NoDestination = 'برای این حساب شماره موبایل یا ایمیلی ثبت نشده است',
 }

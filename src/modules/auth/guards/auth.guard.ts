@@ -11,6 +11,7 @@ import { AuthMessage } from 'src/common/enums/message.enum';
 import { isJWT } from 'class-validator';
 import { Reflector } from '@nestjs/core';
 import { SKIP_AUTH } from 'src/common/decorators/skip-auth.decorator';
+import { ALLOW_BLOCKED } from 'src/common/decorators/allow-blocked.decorator';
 import { UserStatus } from 'src/modules/user/enums/status.enum';
 
 @Injectable()
@@ -29,7 +30,13 @@ export class AuthGuard implements CanActivate {
     const request: Request = httpContext.getRequest<Request>();
     const token = this.extractToken(request);
     request.user = await this.authservice.validateAccessToken(token);
-    if (request?.user?.status === UserStatus.Block) {
+    // Blocked users are rejected everywhere EXCEPT routes that opt in with
+    // @AllowBlocked() (self account deletion). Auth is still enforced above.
+    const allowBlocked = this.reflector.getAllAndOverride<boolean>(
+      ALLOW_BLOCKED,
+      [context.getHandler(), context.getClass()],
+    );
+    if (!allowBlocked && request?.user?.status === UserStatus.Block) {
       throw new ForbiddenException(AuthMessage.Blocked);
     }
     return true;

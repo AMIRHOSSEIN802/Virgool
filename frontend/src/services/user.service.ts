@@ -77,8 +77,14 @@ export const userService = {
     return res.data;
   },
 
-  async changeEmail(email: string): Promise<{ message?: string; code?: string; token?: string }> {
-    const res = await api.patch('/user/change-email', { email });
+  /**
+   * Requests an email change. The backend replies with
+   * `{ message, otpRequired }` — when `otpRequired` is true the client must
+   * open the OTP modal; the code itself was delivered to the new address and
+   * is never part of the response.
+   */
+  async changeEmail(email: string): Promise<{ message: string; otpRequired: boolean }> {
+    const res = await api.patch<{ message: string; otpRequired: boolean }>('/user/change-email', { email });
     return res.data;
   },
 
@@ -87,8 +93,12 @@ export const userService = {
     return res.data;
   },
 
-  async changePhone(phone: string): Promise<{ message?: string; code?: string; token?: string }> {
-    const res = await api.patch('/user/change-phone', { phone });
+  /**
+   * Requests a phone change — same `{ message, otpRequired }` contract as
+   * changeEmail; the OTP is delivered to the new number out-of-band.
+   */
+  async changePhone(phone: string): Promise<{ message: string; otpRequired: boolean }> {
+    const res = await api.patch<{ message: string; otpRequired: boolean }>('/user/change-phone', { phone });
     return res.data;
   },
 
@@ -104,6 +114,19 @@ export const userService = {
 
   async blockUser(userId: number): Promise<{ message: string }> {
     const res = await api.post('/user/block', { userId });
+    return res.data;
+  },
+
+  /**
+   * Permanently delete the authenticated account (DELETE /user/account).
+   * The body carries only the username confirmation — identity always comes
+   * from the access token on the server, so this can never target another
+   * account. Returns the backend confirmation message.
+   */
+  async deleteAccount(username: string): Promise<{ message: string }> {
+    const res = await api.delete<{ message: string }>('/user/account', {
+      data: { username },
+    });
     return res.data;
   },
 };

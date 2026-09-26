@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Post,
   Body,
@@ -38,6 +39,8 @@ import { Pagination } from 'src/common/decorators/pagination.decorator';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { CanAccess } from 'src/common/decorators/role.dexorator';
 import { Roles } from 'src/common/enums/role.eunm';
+import { AllowBlocked } from 'src/common/decorators/allow-blocked.decorator';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 
 @Controller('user')
 @ApiBearerAuth('Authorization')
@@ -108,14 +111,19 @@ export class UserController {
 
   @Patch('/change-email')
   async changeEmail(@Body() emailDto: ChangeEmailDto, @Res() res: Response) {
-    const { code, token, message } = await this.userService.changeEmail(
+    const { otpRequired, message, token } = await this.userService.changeEmail(
       emailDto.email,
     );
-    if (message) return res.json({ message });
-    res.cookie(CookieKeys.EmailOTP, token, CookiesOptionsToken());
-    res.json({
-      code,
-      message,
+    // R-14 contract: the response tells the client WHETHER verification is
+    // required. The OTP code itself is never serialized — it was delivered
+    // to the new address out-of-band.
+    if (otpRequired && token) {
+      res.cookie(CookieKeys.EmailOTP, token, CookiesOptionsToken());
+      return res.json({ message: PublicMessage.SendOtp, otpRequired: true });
+    }
+    return res.json({
+      message: message ?? PublicMessage.Updated,
+      otpRequired: false,
     });
   }
 
@@ -128,14 +136,16 @@ export class UserController {
   @Patch('/change-phone')
   @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   async changephone(@Body() phoneDto: ChangePhoneDto, @Res() res: Response) {
-    const { code, token, message } = await this.userService.changePhone(
+    const { otpRequired, message, token } = await this.userService.changePhone(
       phoneDto.phone,
     );
-    if (message) return res.json({ message });
-    res.cookie(CookieKeys.PhoneOTP, token, CookiesOptionsToken());
-    res.json({
-      code,
-      message: PublicMessage.SendOtp,
+    if (otpRequired && token) {
+      res.cookie(CookieKeys.PhoneOTP, token, CookiesOptionsToken());
+      return res.json({ message: PublicMessage.SendOtp, otpRequired: true });
+    }
+    return res.json({
+      message: message ?? PublicMessage.Updated,
+      otpRequired: false,
     });
   }
 
@@ -157,5 +167,19 @@ export class UserController {
   @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   async changeUsername(@Body() usernameDto: ChangeUsernameDto) {
     return this.userService.changeUserna(usernameDto.username);
+  }
+
+  /**
+   * Self account deletion (hard delete). The account identity comes exclusively
+   * from req.user — no id is accepted from body/query/path, so this can never
+   * be turned into an IDOR or an admin delete-others endpoint. The body only
+   * carries the username confirmation. @AllowBlocked() lets a blocked user
+   * delete their OWN account; every other route still rejects blocked users.
+   */
+  @Delete('/account')
+  @AllowBlocked()
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
+  deleteAccount(@Body() deleteAccountDto: DeleteAccountDto) {
+    return this.userService.deleteAccount(deleteAccountDto);
   }
 }

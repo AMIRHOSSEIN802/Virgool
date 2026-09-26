@@ -13,7 +13,6 @@ export interface CheckOtpDto {
 
 export interface AuthResponse {
   message: string;
-  code?: string;
   accessToken?: string;
 }
 

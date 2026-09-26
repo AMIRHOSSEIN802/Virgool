@@ -17,6 +17,7 @@ import { ProfileEntity } from '../user/entities/profile.entity';
 import {
   AuthMessage,
   BadRequestMessage,
+  OtpDeliveryError,
   PublicMessage,
   RateLimitMessage,
 } from 'src/common/enums/message.enum';
@@ -30,6 +31,8 @@ import { REQUEST } from '@nestjs/core';
 import { CookiesOptionsToken } from 'src/common/utils/cookie.util';
 import { randomId } from 'src/common/utils/functions.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { OtpDeliveryService } from '../otp-delivery/otp-delivery.service';
+import type { OtpDeliveryMessage } from '../otp-delivery/otp-delivery.types';
 
 /** OTP abuse-protection policy (B4) */
 export const OTP_REQUEST_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
@@ -49,6 +52,7 @@ export class AuthService {
     @Inject(REQUEST) private request: Request,
     private tokenService: TokensService,
     private dataSource: DataSource,
+    private readonly otpDelivery: OtpDeliveryService,
   ) {}
 
   async userExistence(authDto: AuthDto, res: Response) {
@@ -57,11 +61,9 @@ export class AuthService {
     switch (type) {
       case AuthType.Login:
         result = await this.login(method, username);
-        // await this.sendOtp(method, username, result.code)
         return this.sendResponse(res, result);
       case AuthType.Register:
         result = await this.register(method, username);
-        // await this.sendOtp(method, username, result.code)
         return this.sendResponse(res, result);
       default:
         throw new UnauthorizedException();
@@ -76,12 +78,11 @@ export class AuthService {
     }
     const otp = await this.saveOtp(user.id, method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
-    console.log(otp.code);
+    // Security: the code leaves the server only through the delivery
+    // transport — never in the HTTP response, never in an application log.
+    await this.deliverOtp(method, validUsername, user, otp.code);
 
-    return {
-      token,
-      code: otp.code,
-    };
+    return { token };
   }
 
   async register(method: AuthMethod, username: string) {
@@ -111,17 +112,57 @@ export class AuthService {
     );
     const otp = await this.saveOtp(user.id, method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
-    return {
-      token,
-      code: otp.code,
-    };
+    await this.deliverOtp(method, validUsername, user, otp.code);
+    return { token };
   }
+
+  /**
+   * Hands the OTP to the out-of-band delivery provider. This is the only
+   * path a code may take out of the server — it is never returned in a
+   * response body and never written to a log by application code.
+   */
+  private async deliverOtp(
+    method: AuthMethod,
+    destination: string,
+    user: UserEntity,
+    code: string,
+  ): Promise<void> {
+    let channel: OtpDeliveryMessage['channel'];
+    let to: string;
+    switch (method) {
+      case AuthMethod.Emai:
+        channel = 'email';
+        to = destination;
+        break;
+      case AuthMethod.phone:
+        channel = 'sms';
+        to = destination;
+        break;
+      case AuthMethod.Username:
+        // Username logins have no explicit destination — fall back to the
+        // contact data on the account (phone first, then email).
+        if (user.phone) {
+          channel = 'sms';
+          to = user.phone;
+        } else if (user.email) {
+          channel = 'email';
+          to = user.email;
+        } else {
+          throw new BadRequestException(OtpDeliveryError.NoDestination);
+        }
+        break;
+      default:
+        throw new UnauthorizedException();
+    }
+    await this.otpDelivery.send({ channel, to, code });
+  }
+
   sendResponse(res: Response, result: AuthResponse) {
-    const { code, token } = result;
-    res.cookie(CookieKeys.OTP, token, CookiesOptionsToken());
+    res.cookie(CookieKeys.OTP, result.token, CookiesOptionsToken());
+    // Security: the response carries only the success message. The OTP code
+    // must never appear here (or anywhere else outside the transport).
     res.json({
       message: PublicMessage.SendOtp,
-      code,
     });
   }
 
@@ -232,7 +273,7 @@ export class AuthService {
    * (expired) so further attempts — even with the correct code — fail.
    * Returns true when the attempt limit has just been reached/exceeded.
    */
-  private async recordFailedOtpAttempt(otpId: number): Promise<boolean> {
+  async recordFailedOtpAttempt(otpId: number): Promise<boolean> {
     await this.OtpRepository.createQueryBuilder()
       .update(OtpEntity)
       .set({ failedAttempts: () => '"failedAttempts" + 1' })
@@ -268,11 +309,17 @@ export class AuthService {
         throw new UnauthorizedException(RateLimitMessage.TooManyAttempts);
       throw new UnauthorizedException(AuthMessage.TryAgain);
     }
-    // B4: consume the OTP (one-time use) and reset abuse counters
-    await this.OtpRepository.update(
-      { id: otp.id },
-      { consumedAt: new Date(), failedAttempts: 0 },
-    );
+    // B4: consume the OTP (one-time use) and reset abuse counters.
+    // Conditional UPDATE — only one concurrent verify can win the race, so
+    // the same code can never be exchanged for two access tokens.
+    const consumed = await this.OtpRepository.createQueryBuilder()
+      .update(OtpEntity)
+      .set({ consumedAt: () => 'NOW()', failedAttempts: 0 })
+      .where('id = :id AND "consumedAt" IS NULL', { id: otp.id })
+      .execute();
+    if (!consumed.affected) {
+      throw new UnauthorizedException(AuthMessage.ExiredCode);
+    }
     const accessToken = this.tokenService.createAccessToken({ userId });
     if (otp.method === AuthMethod.Emai) {
       await this.userRepository.update(

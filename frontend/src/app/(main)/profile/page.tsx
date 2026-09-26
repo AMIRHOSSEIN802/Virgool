@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { ProfileWithCounts } from '@/types/auth.types';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileForm from '@/components/profile/ProfileForm';
+import DangerZone from '@/components/profile/DangerZone';
 import AuthGuard from '@/components/auth/AuthGuard';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 import ErrorState from '@/components/ui/ErrorState';
@@ -79,12 +80,12 @@ function ProfileContent() {
     setIsSubmitting(true);
     try {
       const result = await userService.changeEmail(emailValue.trim());
-      if (result.code) {
+      if (result.otpRequired) {
         setOtpTarget('email');
         setShowEmailModal(false);
         toast.success('کد تایید ارسال شد');
       } else {
-        toast.success((result as { message?: string }).message || 'ایمیل بروزرسانی شد');
+        toast.success(result.message || 'ایمیل بروزرسانی شد');
         setShowEmailModal(false);
         fetchProfile();
       }
@@ -104,7 +105,7 @@ function ProfileContent() {
     setIsSubmitting(true);
     try {
       const result = await userService.changePhone(phoneValue.trim());
-      if (result.code) {
+      if (result.otpRequired) {
         setOtpTarget('phone');
         setShowPhoneModal(false);
         toast.success('کد تایید ارسال شد');
@@ -213,6 +214,9 @@ function ProfileContent() {
         <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--text-primary)' }}>ویرایش اطلاعات</h2>
         <ProfileForm onSaved={fetchProfile} />
       </section>
+
+      {/* Account Deletion (danger zone) */}
+      <DangerZone username={profile.username} />
 
       {/* Image Upload Modal */}
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="تغییر تصاویر">

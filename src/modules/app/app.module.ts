@@ -10,6 +10,7 @@ import { BlogModule } from '../blog/blog.module';
 import { AddUserToReqWOV } from 'src/common/middleware/addUserToReqWOV.middleware';
 import { ImageModule } from '../image/image.module';
 import { NotificationModule } from '../notification/notification.module';
+import { OtpDeliveryModule } from '../otp-delivery/otp-delivery.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -17,6 +18,7 @@ import { NotificationModule } from '../notification/notification.module';
       envFilePath: join(process.cwd(), '.env'),
     }),
     TypeOrmModule.forRoot(TypeOrmConfig()),
+    OtpDeliveryModule,
     AuthModule,
     UserModule,
     CategoryModule,

@@ -14,7 +14,8 @@
  * Covered: cases 1–14 of the account-deletion spec, plus the end-to-end
  * scenario (author deleted while third parties engage with their blog).
  */
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { createAppValidationPipe } from 'src/common/pipes/app-validation.pipe';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { Client } from 'pg';
@@ -224,6 +225,10 @@ describe('DELETE /user/account (account deletion)', () => {
     // Point the application at the isolated schema BEFORE AppModule loads —
     // TypeOrmConfig() reads process.env at module import time.
     process.env.DB_NAME = TEST_DB;
+    // R-04: keep the global limiter ACTIVE but deterministic for this suite —
+    // a generous window so its request volume never trips a 429.
+    process.env.RATE_LIMIT_TTL_MS = '60000';
+    process.env.RATE_LIMIT_MAX = '100000';
 
     // AppModule loads .env through ConfigModule, but the admin client below
     // connects first. dotenv never overwrites variables already set.
@@ -257,7 +262,7 @@ describe('DELETE /user/account (account deletion)', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(createAppValidationPipe());
     await app.init();
     ds = app.get(DataSource);
   });
@@ -328,9 +333,13 @@ describe('DELETE /user/account (account deletion)', () => {
       targetId: victim.id,
     });
 
-    expect(res.status).toBe(200);
+    // R-06 strict pipe: the hostile extra properties are rejected outright
+    // (400) instead of being silently dropped — even stronger than the old
+    // ignore-them contract. Either way neither account may be touched by
+    // fields that are not part of DeleteAccountDto.
+    expect(res.status).toBe(400);
     expect(await findUser(victim.id)).not.toBeNull();
-    expect(await findUser(attacker.id)).toBeNull();
+    expect(await findUser(attacker.id)).not.toBeNull();
   });
 
   it('CASE 2 — a published blog is deleted with the account', async () => {

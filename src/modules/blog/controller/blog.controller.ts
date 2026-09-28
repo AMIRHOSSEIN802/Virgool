@@ -40,11 +40,11 @@ export class BlogController {
   @Pagination()
   @SkipAuth()
   @FilterBlog()
-  find(
-    @Query() paginationDto: PaginationDto,
-    @Query() filterDto: FilterBlogDto,
-  ) {
-    return this.blogService.blogList(paginationDto, filterDto);
+  find(@Query() queryDto: FilterBlogDto) {
+    // Single query DTO (R-06): it extends PaginationDto, so one validated
+    // object carries page/limit + category/search and strict whitelist
+    // validation can reject unknown query keys.
+    return this.blogService.blogList(queryDto, queryDto);
   }
   @Get('/by-slug/:slug')
   @SkipAuth()

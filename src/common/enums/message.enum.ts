@@ -57,6 +57,7 @@ export enum ForbiddenMessage {
 export enum RateLimitMessage {
   TooManyOtpRequests = 'تعداد درخواست کد بیش از حد مجاز است. لطفا بعدا تلاش کنید',
   TooManyAttempts = 'تعداد تلاش‌های ناموفق بیش از حد مجاز است. درخواست کد جدید',
+  TooManyRequests = 'تعداد درخواست‌های شما بیش از حد مجاز است. لطفا کمی صبر کنید و دوباره تلاش کنید',
 }
 export enum ValidationMessage {
   InvalidImageFormat = 'فرمت تصویر انتخاب شده باید از نوع jpg , png باشد',

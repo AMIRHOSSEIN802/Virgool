@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Gender } from '../enums/gender.enum';
 import {
+  IsDateString,
   IsEmail,
   IsEnum,
   IsMobilePhone,
@@ -22,18 +23,32 @@ export class ProfileDto {
   @Length(10, 200)
   bio: string;
   @ApiPropertyOptional({ nullable: true, format: 'binary' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 500)
   image_profile: string;
   @ApiPropertyOptional({ nullable: true, format: 'binary' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 500)
   bg_image: string;
   @ApiPropertyOptional({ nullable: true, enum: Gender })
   @IsOptional()
   @IsEnum(Gender)
   gender: string;
   @ApiPropertyOptional({ nullable: true, example: '2002-07-25T21:34:30.865Z' })
+  @IsOptional()
+  @IsDateString()
   birthday: Date;
   @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @Length(1, 500)
   linkedin_profile: string;
   @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @Length(1, 500)
   x_profile: string;
 }
 

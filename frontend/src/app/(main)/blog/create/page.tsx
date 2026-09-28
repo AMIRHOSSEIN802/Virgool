@@ -13,10 +13,14 @@ import { imageService } from '@/services/image.service';
 import { getImageUrl } from '@/lib/constants';
 import { categoryService } from '@/services/category.service';
 import { CategoryEntity } from '@/types/category.types';
+import type { BlogEntity } from '@/types/blog.types';
+
+type BlogStatus = BlogEntity['status'];
 import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import Button from '@/components/ui/Button';
 import AuthGuard from '@/components/auth/AuthGuard';
+import PublishButton from '@/components/blog/PublishButton';
 import toast from 'react-hot-toast';
 import {
   Bold, Italic, Heading1, Heading2, List, Quote, Code, Image as ImageIcon, Loader2,
@@ -38,6 +42,7 @@ function BlogEditorContent() {
   const [suggestedCategories, setSuggestedCategories] = useState<CategoryEntity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [blogId, setBlogId] = useState<number | null>(null);
+  const [blogStatus, setBlogStatus] = useState<BlogStatus | null>(null);
   const [isFetching, setIsFetching] = useState(isEditing);
 
   const editor = useEditor({
@@ -78,6 +83,7 @@ function BlogEditorContent() {
         setDescription(blog.description);
         setTimeForStudy(blog.time_for_study);
         setBlogId(blog.id);
+        setBlogStatus(blog.status);
         if (editor && blog.content) {
           editor.commands.setContent(blog.content);
         }
@@ -387,6 +393,13 @@ function BlogEditorContent() {
         <Button onClick={handleSubmit} isLoading={isLoading} size="lg">
           {isEditing ? 'ذخیره تغییرات' : 'ثبت مقاله'}
         </Button>
+        {blogId !== null && blogStatus !== null && (
+          <PublishButton
+            blogId={blogId}
+            status={blogStatus}
+            onPublished={() => setBlogStatus('published')}
+          />
+        )}
         <Button variant="ghost" onClick={() => router.back()}>
           انصراف
         </Button>

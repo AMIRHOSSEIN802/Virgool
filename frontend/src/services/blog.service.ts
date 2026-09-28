@@ -82,4 +82,14 @@ export const blogService = {
     const res = await api.put<{ message: string }>(`/blog/${id}`, body);
     return res.data;
   },
+
+  /**
+   * R-02 — explicit publish action. Creating/saving a blog never publishes it;
+   * only this call moves the status to Published (backend authorizes
+   * owner/admin and is idempotent for already-published blogs).
+   */
+  async publish(id: number): Promise<{ message: string }> {
+    const res = await api.post<{ message: string }>(`/blog/${id}/publish`);
+    return res.data;
+  },
 };

@@ -1,15 +1,22 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { Roles } from 'src/common/enums/role.eunm';
 
-/** Admin users list filters — everything is optional; search is a plain term. */
-export class AdminUserFilterDto {
+/**
+ * Admin users list — pagination + filters as ONE query object (R-06): the
+ * endpoint binds a single DTO so strict whitelist validation accepts every
+ * known key and rejects anything else.
+ */
+export class AdminUserFilterDto extends PaginationDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @Length(1, 200)
   search?: string;
 
-  @ApiPropertyOptional({ enum: ['admin', 'user'] })
+  @ApiPropertyOptional({ enum: Roles })
   @IsOptional()
-  @IsString()
+  @IsEnum(Roles)
   role?: string;
 }

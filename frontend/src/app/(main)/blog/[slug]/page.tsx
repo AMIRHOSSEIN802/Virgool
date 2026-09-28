@@ -7,6 +7,7 @@ import { BlogDetailResponse } from '@/types/blog.types';
 import { getImageUrl } from '@/lib/constants';
 import { formatDate, formatNumber, toPersianDigits } from '@/lib/utils';
 import BlogActions from '@/components/blog/BlogActions';
+import BlogContent from '@/components/blog/BlogContent';
 import SuggestedBlogs from '@/components/blog/SuggestedBlogs';
 import CommentList from '@/components/comment/CommentList';
 import Avatar from '@/components/ui/Avatar';
@@ -175,11 +176,8 @@ export default function BlogDetailPage() {
             {blog.description}
           </p>
 
-          {/* Content */}
-          <div
-            className="blog-content max-w-none"
-            dangerouslySetInnerHTML={{ __html: blog.content }}
-          />
+          {/* Content — sanitized at the rendering boundary (R-03). */}
+          <BlogContent html={blog.content} />
 
           {/* Actions */}
           <div className="mt-10 pt-6" style={{ borderTop: '1px solid var(--border)' }}>

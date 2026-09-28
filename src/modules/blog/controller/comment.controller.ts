@@ -13,11 +13,14 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '../../auth/guards/auth.guard';
-import { CreateCommentDto, UpdateCommentDto } from '../dto/comment.dto';
 import { BlogCommentService } from '../service/comment.service';
 import type { Request } from 'express';
 import { Pagination } from 'src/common/decorators/pagination.decorator';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import {
+  CommentListQueryDto,
+  CreateCommentDto,
+  UpdateCommentDto,
+} from '../dto/comment.dto';
 import { CanAccess } from 'src/common/decorators/role.dexorator';
 import { RoleGuard } from '../../auth/guards/role.guard';
 import { Roles } from 'src/common/enums/role.eunm';
@@ -39,11 +42,9 @@ export class BlogCommentController {
   @Pagination()
   @CanAccess(Roles.Admin)
   @UseGuards(RoleGuard)
-  find(
-    @Query() paginationDto: PaginationDto,
-    @Query('accepted') accepted?: string,
-  ) {
-    return this.blogCommentService.find(paginationDto, accepted);
+  find(@Query() queryDto: CommentListQueryDto) {
+    // Pagination + `accepted` arrive as ONE validated query object (R-06).
+    return this.blogCommentService.find(queryDto, queryDto.accepted);
   }
   @Put('/accept/:id')
   accept(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {

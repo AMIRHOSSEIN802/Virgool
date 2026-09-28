@@ -86,11 +86,9 @@ export class UserController {
   @CanAccess(Roles.Admin)
   @UseGuards(RoleGuard)
   @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
-  find(
-    @Query() paginationDto: PaginationDto,
-    @Query() filterDto: AdminUserFilterDto,
-  ) {
-    return this.userService.adminUsers(paginationDto, filterDto);
+  find(@Query() queryDto: AdminUserFilterDto) {
+    // Single validated query object (R-06): pagination + filters together.
+    return this.userService.adminUsers(queryDto, queryDto);
   }
   @Get('/followers')
   @Pagination()

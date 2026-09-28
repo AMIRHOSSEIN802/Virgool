@@ -17,7 +17,8 @@
  * is never touched. Delivery is replaced with a recording stub — the real
  * transports are unit-tested in otp-delivery.service.spec.ts.
  */
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { createAppValidationPipe } from 'src/common/pipes/app-validation.pipe';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { Client } from 'pg';
@@ -175,6 +176,10 @@ describe('OTP authentication (R-01 delivery + R-14 verification security)', () =
     // Point the application at the isolated schema BEFORE AppModule loads —
     // TypeOrmConfig() reads process.env at module import time.
     process.env.DB_NAME = TEST_DB;
+    // R-04: keep the global limiter ACTIVE but deterministic for this suite —
+    // a generous window so its request volume never trips the 429s below.
+    process.env.RATE_LIMIT_TTL_MS = '60000';
+    process.env.RATE_LIMIT_MAX = '100000';
     config();
 
     const client = new Client({
@@ -210,7 +215,7 @@ describe('OTP authentication (R-01 delivery + R-14 verification security)', () =
     app = moduleRef.createNestApplication();
     // main.ts registers cookie-parser — the OTP flows read scoped cookies.
     app.use(cookieParser());
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(createAppValidationPipe());
     await app.init();
     ds = app.get(DataSource);
   });

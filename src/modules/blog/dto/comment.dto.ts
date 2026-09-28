@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumberString, IsOptional, Length } from 'class-validator';
+import { IsNumberString, IsOptional, IsString, Length } from 'class-validator';
+import { PaginationDto } from 'src/common/dtos/pagination.dto';
 
 export class CreateCommentDto {
   @ApiProperty()
@@ -23,4 +24,17 @@ export class UpdateCommentDto {
   @ApiProperty()
   @Length(5)
   text: string;
+}
+
+/**
+ * Query for the admin comment list (`GET /blog-comment`). The moderation
+ * filter (`accepted`) lives inside the DTO together with pagination so the
+ * strict whitelist pipe can validate the whole query object in one binding.
+ */
+export class CommentListQueryDto extends PaginationDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(1, 10)
+  accepted?: string;
 }

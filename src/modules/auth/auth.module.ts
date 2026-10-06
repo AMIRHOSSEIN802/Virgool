@@ -9,17 +9,35 @@ import { OtpEntity } from '../user/entities/otp.entity';
 import { ProfileEntity } from '../user/entities/profile.entity';
 import { GoogleAuthController } from './google.controller';
 import { GoogleStrategy } from './strategy/google.strategy';
+import { SessionEntity } from './entities/session.entity';
+import { OAuthCodeEntity } from './entities/oauth-code.entity';
+import { SessionService } from './session.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity, OtpEntity, ProfileEntity])],
+  imports: [
+    TypeOrmModule.forFeature([
+      UserEntity,
+      OtpEntity,
+      ProfileEntity,
+      SessionEntity,
+      OAuthCodeEntity,
+    ]),
+  ],
   controllers: [AuthController, GoogleAuthController],
-  providers: [AuthService, JwtService, TokensService, GoogleStrategy],
+  providers: [
+    AuthService,
+    JwtService,
+    TokensService,
+    GoogleStrategy,
+    SessionService,
+  ],
   exports: [
     AuthService,
     JwtService,
     TokensService,
     TypeOrmModule,
     GoogleStrategy,
+    SessionService,
   ],
 })
 export class AuthModule {}

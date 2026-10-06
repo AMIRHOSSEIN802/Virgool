@@ -31,3 +31,11 @@ export class UserBlockDto {
   @Min(1)
   userId: number;
 }
+
+/** R-05 — body of POST /auth/google/exchange (one-time handoff code). */
+export class GoogleExchangeDto {
+  @ApiProperty()
+  @IsString()
+  @Length(20, 200)
+  code: string;
+}

@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import type { JwtSignOptions } from '@nestjs/jwt';
 import {
   AccessTokenPayload,
   CookiePayload,
@@ -11,6 +12,20 @@ import {
   PhoneTokenPayload,
 } from './types/payload';
 import { AuthMessage, BadRequestMessage } from 'src/common/enums/message.enum';
+
+/**
+ * R-05 — access-token lifetime. Short-lived by default (15m): the browser
+ * keeps it only until the next refresh, and revocation authority lives in the
+ * server-side session (refresh cookie), not in the JWT itself.
+ */
+const ACCESS_TOKEN_TTL_PATTERN = /^\d+(?:ms|s|m|h|d)$/;
+function accessTokenTtl(): JwtSignOptions['expiresIn'] {
+  const ttl = process.env.ACCESS_TOKEN_TTL;
+  if (ttl && ACCESS_TOKEN_TTL_PATTERN.test(ttl)) {
+    return ttl as JwtSignOptions['expiresIn'];
+  }
+  return '15m';
+}
 
 @Injectable()
 export class TokensService {
@@ -35,7 +50,7 @@ export class TokensService {
   createAccessToken(payload: AccessTokenPayload) {
     const token = this.jwtService.sign(payload, {
       secret: process.env.ACCESS_TOKEN_SECRET,
-      expiresIn: '1y',
+      expiresIn: accessTokenTtl(),
     });
     return token;
   }

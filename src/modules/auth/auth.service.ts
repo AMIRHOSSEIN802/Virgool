@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   Scope,
@@ -21,23 +22,32 @@ import {
   PublicMessage,
   RateLimitMessage,
 } from 'src/common/enums/message.enum';
-import { randomInt } from 'crypto';
+import { randomBytes, randomInt } from 'crypto';
 import { OtpEntity } from '../user/entities/otp.entity';
 import { TokensService } from './tokens.service';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import type { Request, Response } from 'express';
 import { AuthResponse, GoogleUser } from './types/response';
 import { REQUEST } from '@nestjs/core';
-import { CookiesOptionsToken } from 'src/common/utils/cookie.util';
+import {
+  ClearCookiesOptionsRefresh,
+  CookiesOptionsRefresh,
+  CookiesOptionsToken,
+} from 'src/common/utils/cookie.util';
 import { randomId } from 'src/common/utils/functions.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { OtpDeliveryService } from '../otp-delivery/otp-delivery.service';
 import type { OtpDeliveryMessage } from '../otp-delivery/otp-delivery.types';
+import { SessionService, SessionMeta } from './session.service';
+import { OAuthCodeEntity } from './entities/oauth-code.entity';
+import { UserStatus } from '../user/enums/status.enum';
 
 /** OTP abuse-protection policy (B4) */
 export const OTP_REQUEST_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 export const OTP_MAX_REQUESTS_PER_WINDOW = 3;
 export const OTP_MAX_FAILED_ATTEMPTS = 5;
+/** R-05 — how long the Google OAuth one-time handoff code stays spendable. */
+export const GOOGLE_HANDOFF_TTL_MS = 60 * 1000;
 
 @Injectable({ scope: Scope.REQUEST })
 export class AuthService {
@@ -49,8 +59,11 @@ export class AuthService {
     private readonly profileRepository: Repository<ProfileEntity>,
     @InjectRepository(OtpEntity)
     private readonly OtpRepository: Repository<OtpEntity>,
+    @InjectRepository(OAuthCodeEntity)
+    private readonly OAuthCodeRepository: Repository<OAuthCodeEntity>,
     @Inject(REQUEST) private request: Request,
     private tokenService: TokensService,
+    private readonly sessionService: SessionService,
     private dataSource: DataSource,
     private readonly otpDelivery: OtpDeliveryService,
   ) {}
@@ -292,7 +305,7 @@ export class AuthService {
     return false;
   }
 
-  async checkOtp(code: string) {
+  async checkOtp(code: string, res: Response) {
     const token = this.request.cookies[CookieKeys.OTP] as string;
     if (!token) throw new UnauthorizedException(AuthMessage.ExiredCode);
     const { userId } = this.tokenService.verifyOtpToken(token);
@@ -336,9 +349,63 @@ export class AuthService {
         },
       );
     }
+    // R-05: a successful OTP verification also opens a refresh session. The
+    // raw refresh token goes ONLY into the HttpOnly cookie — the JSON body
+    // keeps the established { message, accessToken } contract.
+    const { raw } = await this.sessionService.createSession(
+      userId,
+      this.sessionMeta(),
+    );
+    res.cookie(CookieKeys.Refresh, raw, CookiesOptionsRefresh());
     return {
       message: PublicMessage.LoggedIn,
       accessToken,
+    };
+  }
+
+  /**
+   * R-05 — POST /auth/refresh: rotate the cookie-scoped refresh token into a
+   * fresh access token + fresh refresh cookie. Never requires (and never
+   * accepts as sufficient) an access token; never returns the refresh token
+   * in the body. Every failure clears the cookie; reuse of a rotated token
+   * revokes the whole family inside SessionService.
+   */
+  async refreshSession(res: Response) {
+    const raw = this.request.cookies[CookieKeys.Refresh] as string | undefined;
+    if (!raw) throw new UnauthorizedException(AuthMessage.LoginIsRequired);
+    try {
+      const { raw: nextRaw, session } = await this.sessionService.rotateSession(
+        raw,
+        this.sessionMeta(),
+      );
+      const accessToken = this.tokenService.createAccessToken({
+        userId: session.userId,
+      });
+      res.cookie(CookieKeys.Refresh, nextRaw, CookiesOptionsRefresh());
+      return { accessToken };
+    } catch (error) {
+      res.clearCookie(CookieKeys.Refresh, ClearCookiesOptionsRefresh());
+      throw error;
+    }
+  }
+
+  /**
+   * R-05 — POST /auth/logout: revoke the session family behind the cookie and
+   * clear the cookie. Idempotent: no cookie / unknown cookie is still a
+   * successful logout, and the caller can only ever touch their OWN session
+   * (possession of the opaque token is the capability).
+   */
+  async logout(res: Response) {
+    const raw = this.request.cookies[CookieKeys.Refresh] as string | undefined;
+    if (raw) await this.sessionService.revokeByRawToken(raw);
+    res.clearCookie(CookieKeys.Refresh, ClearCookiesOptionsRefresh());
+    return { message: PublicMessage.LoggedOut };
+  }
+
+  private sessionMeta(): SessionMeta {
+    return {
+      userAgent: this.request.headers['user-agent'] ?? null,
+      ip: this.request.ip ?? null,
     };
   }
 
@@ -386,13 +453,16 @@ export class AuthService {
     }
   }
 
-  async googleAuth(userData: GoogleUser) {
+  /**
+   * R-05 — Google OAuth handshake step 1. Finds/creates the user exactly as
+   * before, but instead of signing a JWT that would travel through the
+   * browser URL, it mints a random ONE-TIME handoff code (~60s, stored
+   * hashed, single-use) that the frontend exchanges for real tokens.
+   */
+  async googleAuth(userData: GoogleUser): Promise<{ code: string }> {
     const { email, firstName, lastName } = userData;
-    let token: string;
     let user = await this.userRepository.findOneBy({ email });
-    if (user) {
-      token = this.tokenService.createAccessToken({ userId: user.id });
-    } else {
+    if (!user) {
       user = this.userRepository.create({
         email,
         verify_email: true,
@@ -406,10 +476,68 @@ export class AuthService {
       profile = await this.profileRepository.save(profile);
       user.profileId = profile.id;
       await this.userRepository.save(user);
-      token = this.tokenService.createAccessToken({ userId: user.id });
     }
+    const code = await this.createGoogleCode(user.id);
+    return { code };
+  }
+
+  /** R-05 — stores the SHA-256 of a fresh one-time handoff code. */
+  private async createGoogleCode(userId: number): Promise<string> {
+    const raw = randomBytes(32).toString('base64url');
+    // Bounded cleanup of spent/expired handoff rows.
+    await this.OAuthCodeRepository.createQueryBuilder()
+      .delete()
+      .where('"expiresAt" < NOW()')
+      .execute();
+    await this.OAuthCodeRepository.save(
+      this.OAuthCodeRepository.create({
+        userId,
+        codeHash: SessionService.hashToken(raw),
+        expiresAt: new Date(Date.now() + GOOGLE_HANDOFF_TTL_MS),
+        consumedAt: null,
+      }),
+    );
+    return raw;
+  }
+
+  /**
+   * R-05 — POST /auth/google/exchange: spends a one-time handoff code for an
+   * access token + refresh cookie. The claim is a single conditional UPDATE,
+   * so a code can be exchanged exactly once even under concurrent requests;
+   * expired/used/unknown codes all fail with 401.
+   */
+  async exchangeGoogleCode(code: string, res: Response) {
+    const hash = SessionService.hashToken(code);
+    const claimed = await this.OAuthCodeRepository.createQueryBuilder()
+      .update(OAuthCodeEntity)
+      .set({ consumedAt: () => 'NOW()' })
+      .where(
+        '"codeHash" = :hash AND "consumedAt" IS NULL AND "expiresAt" > NOW()',
+        { hash },
+      )
+      .execute();
+    if (!claimed.affected)
+      throw new UnauthorizedException(AuthMessage.ExiredCode);
+    const handoff = await this.OAuthCodeRepository.findOneBy({
+      codeHash: hash,
+    });
+    if (!handoff) throw new UnauthorizedException(AuthMessage.ExiredCode);
+    const user = await this.userRepository.findOneBy({ id: handoff.userId });
+    if (!user) throw new UnauthorizedException(AuthMessage.LoginAgin);
+    if (user.status === UserStatus.Block) {
+      throw new ForbiddenException(AuthMessage.Blocked);
+    }
+    const accessToken = this.tokenService.createAccessToken({
+      userId: user.id,
+    });
+    const { raw } = await this.sessionService.createSession(
+      user.id,
+      this.sessionMeta(),
+    );
+    res.cookie(CookieKeys.Refresh, raw, CookiesOptionsRefresh());
     return {
-      token,
+      message: PublicMessage.LoggedIn,
+      accessToken,
     };
   }
 }

@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import type { UserEntity } from '@/types/auth.types';
 import { authService } from '@/services/auth.service';
 import { userService } from '@/services/user.service';
-import { setAccessToken } from '@/lib/api';
+import { setAccessToken, registerAuthFailureHandler } from '@/lib/api';
 
 interface AuthState {
   user: UserEntity | null;
@@ -74,7 +74,22 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
   logout: () => {
+    // R-05 — best-effort server-side revocation of the refresh session; the
+    // local state ALWAYS clears, even if the network call fails or the
+    // session is already gone (idempotent on the backend too).
+    authService.logout().catch(() => undefined);
     setAccessToken(null);
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false, isLoading: false });
   },
 }));
+
+// R-05 — when a refresh fails (session expired/revoked on the server), the
+// API client flips the store so AuthGuard redirects through the existing
+// /auth?redirect=... flow instead of leaving a dead "logged-in" shell.
+registerAuthFailureHandler(() => {
+  useAuthStore.setState({
+    user: null,
+    isAuthenticated: false,
+    isLoading: false,
+  });
+});

@@ -11,4 +11,6 @@ export enum EntityName {
   Image = 'image',
   Follow = 'follow',
   Notification = 'notification',
+  Session = 'session',
+  OAuthCode = 'oauth_code',
 }

@@ -16,6 +16,7 @@ export enum AuthMessage {
   LoginAgin = 'مجددا وارد حساب کاربری خود شوید',
   LoginIsRequired = 'وارد حساب کاربری خود شوید',
   Blocked = 'حساب کاربری شما مسدود می باشد، لطفا با پشتیبانی در ارتباط باشید ',
+  UntrustedOrigin = 'مبدأ درخواست مجاز نیست',
 }
 export enum PublicMessage {
   SendOtp = 'کد با موفقیت ارسال شد',
@@ -35,6 +36,7 @@ export enum PublicMessage {
   UnBlocked = 'حساب کاربری از حالت مسدود خارج شد',
   Published = 'مقاله با موفقیت منتشر شد',
   AccountDeleted = 'حساب کاربری شما با موفقیت حذف شد',
+  LoggedOut = 'با موفقیت از حساب کاربری خارج شدید',
 }
 
 export enum NotFoundMessage {

@@ -4,6 +4,7 @@ import { useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { setAccessToken } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
+import { authService } from '@/services/auth.service';
 import Spinner from '@/components/ui/Spinner';
 
 function CallbackHandler() {
@@ -17,16 +18,29 @@ function CallbackHandler() {
     if (ranOnce.current) return;
     ranOnce.current = true;
 
-    const token = searchParams.get('token');
-    if (token) {
-      setAccessToken(token);
-      checkLogin().then(() => {
-        router.replace('/');
-      });
-    } else {
-      toast();
-      router.replace('/auth');
+    // R-05 — the backend redirects with a ONE-TIME code (60s, single-use,
+    // stored hashed), never with a JWT. Spend it here for a real session:
+    // access token in memory/storage + refresh cookie set by the server.
+    const code = searchParams.get('code');
+    if (!code) {
+      fail(router);
+      return;
     }
+    authService
+      .exchangeGoogleCode(code)
+      .then((res) => {
+        if (!res.accessToken) throw new Error('missing access token');
+        setAccessToken(res.accessToken);
+        return checkLogin();
+      })
+      .then((user) => {
+        if (user) {
+          router.replace('/');
+        } else {
+          fail(router);
+        }
+      })
+      .catch(() => fail(router));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -38,6 +52,11 @@ function CallbackHandler() {
       </div>
     </div>
   );
+}
+
+function fail(router: ReturnType<typeof useRouter>) {
+  toast();
+  router.replace('/auth');
 }
 
 function toast() {

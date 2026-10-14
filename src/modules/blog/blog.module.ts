@@ -9,7 +9,7 @@ import { BlogLikeEntity } from './entities/like.entity';
 import { BlogBookmarkEntity } from './entities/bookmark.entity';
 import { BlogController } from './controller/blog.controller';
 import { BlogService } from './service/blog.service';
-import { BlogCommenrtEntity } from './entities/comment.entity';
+import { BlogCommentEntity } from './entities/comment.entity';
 import { BlogCommentController } from './controller/comment.controller';
 import { BlogCommentService } from './service/comment.service';
 import { NotificationModule } from '../notification/notification.module';
@@ -24,7 +24,7 @@ import { NotificationModule } from '../notification/notification.module';
       BlogCategoryEntity,
       BlogLikeEntity,
       BlogBookmarkEntity,
-      BlogCommenrtEntity,
+      BlogCommentEntity,
     ]),
   ],
   controllers: [BlogController, BlogCommentController],

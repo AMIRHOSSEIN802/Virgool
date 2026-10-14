@@ -126,7 +126,8 @@ export class BlogService {
   async blogList(paginationDto: PaginationDto, filterDto: FilterBlogDto) {
     const { limit, page, skip } = paginationSolver(paginationDto);
 
-    let { category, search } = filterDto;
+    let { category } = filterDto;
+    const { search } = filterDto;
 
     let where = 'blog.status = :status';
     const parameters: Record<string, unknown> = {
@@ -150,7 +151,8 @@ export class BlogService {
         // treated as literal data (also neutralizes injection attempts,
         // which is already parameter-bound).
         const escaped = term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
-        where += ' AND (blog.title ILIKE :search OR blog.description ILIKE :search)';
+        where +=
+          ' AND (blog.title ILIKE :search OR blog.description ILIKE :search)';
         parameters.search = `%${escaped}%`;
       }
     }
@@ -349,7 +351,7 @@ export class BlogService {
     const { id: userId } = this.request.user;
     const blog = await this.checkExistBlogById(blogId);
     const isLiked = await this.blogLikeRepository.findOneBy({ userId, blogId });
-    let message = PublicMessage.Liek;
+    let message = PublicMessage.Like;
     if (isLiked) {
       // Unlike keeps the notification as history (product call for MVP — the
       // dedup on re-like prevents spam of NEW unread rows while it is unread).
@@ -382,7 +384,7 @@ export class BlogService {
       userId,
       blogId,
     });
-    let message = PublicMessage.bokkmark;
+    let message = PublicMessage.bookmark;
     if (isbookmark) {
       await this.blogbookmarkRepository.delete({ id: isbookmark.id });
       message = PublicMessage.Unbookmark;

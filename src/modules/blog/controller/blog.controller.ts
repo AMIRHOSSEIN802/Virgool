@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
+import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.enum';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { Pagination } from 'src/common/decorators/pagination.decorator';
 import { SkipAuth } from 'src/common/decorators/skip-auth.decorator';

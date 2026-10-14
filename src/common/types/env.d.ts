@@ -24,5 +24,7 @@ namespace NodeJS {
     //GOOGLE
     GOOGLE_CLIENT_ID: string;
     GOOGLE_SECRET_ID: string;
+    /** Public Google OAuth callback URL (required in production). */
+    GOOGLE_CALLBACK_URL?: string;
   }
 }

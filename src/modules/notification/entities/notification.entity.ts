@@ -2,7 +2,7 @@ import { BaseEntity } from 'src/common/abstracts/base.entity';
 import { EntityName } from 'src/common/enums/entity.eunm';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { BlogEntity } from 'src/modules/blog/entities/blog.entity';
-import { BlogCommenrtEntity } from 'src/modules/blog/entities/comment.entity';
+import { BlogCommentEntity } from 'src/modules/blog/entities/comment.entity';
 import { NotificationType } from '../enums/type.enum';
 import { Column, CreateDateColumn, Entity, Index, ManyToOne } from 'typeorm';
 
@@ -31,11 +31,11 @@ export class NotificationEntity extends BaseEntity {
   blog: BlogEntity | null;
   @Column({ nullable: true })
   commentId: number | null;
-  @ManyToOne(() => BlogCommenrtEntity, {
+  @ManyToOne(() => BlogCommentEntity, {
     onDelete: 'SET NULL',
     nullable: true,
   })
-  comment: BlogCommenrtEntity | null;
+  comment: BlogCommentEntity | null;
   @Column({ default: false })
   isRead: boolean;
   @CreateDateColumn()

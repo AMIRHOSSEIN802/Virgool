@@ -14,12 +14,12 @@ import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { ApiConsumes } from '@nestjs/swagger';
-import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
+import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.enum';
 import { Pagination } from 'src/common/decorators/pagination.decorator';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
-import { CanAccess } from 'src/common/decorators/role.dexorator';
+import { CanAccess } from 'src/common/decorators/role.decorator';
 import { Roles } from 'src/common/enums/role.eunm';
 
 @Controller('category')

@@ -273,6 +273,7 @@ In production you **must** configure SMTP (otherwise OTP delivery fails by desig
 | `ACCESS_TOKEN_SECRET` | yes | Signs access tokens |
 | `EMAIL_TOKEN_SECRET`, `PHONE_TOKEN_SECRET` | yes | Sign change-email / change-phone tokens |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_SECRET_ID` | yes | Google OAuth credentials |
+| `GOOGLE_CALLBACK_URL` | yes in production | Public Google OAuth callback URL. Defaults to `http://localhost:3000/auth/google/redirect` outside production; the app fails fast at startup when missing in production |
 | `SMTP_HOST` | no | Enables real email delivery of OTP codes |
 | `SMTP_PORT` | no | Default `587` |
 | `SMTP_SECURE` | no | `true` for TLS (implied on port 465) |
@@ -293,7 +294,7 @@ In production you **must** configure SMTP (otherwise OTP delivery fails by desig
 
 ## Testing
 
-The backend has **80 tests** across 7 suites (auth/OTP, rate limiting, request validation, publish workflow, account deletion, OTP delivery). They are integration tests that run against a **real PostgreSQL** instance, using isolated schemas so your development data is never touched.
+The backend has **111 tests** across 9 suites (auth/OTP, session/refresh rotation, rate limiting, request validation, publish workflow, account deletion, OTP delivery, Google OAuth callback config). They are integration tests that run against a **real PostgreSQL** instance, using isolated schemas so your development data is never touched.
 
 ```bash
 # PostgreSQL must be running and reachable with the credentials in .env
@@ -347,11 +348,9 @@ Virgool/
 Being upfront about what is not finished yet:
 
 - [ ] **Database migrations** – the schema currently relies on TypeORM `synchronize`; migrations should replace it before any real deployment
-- [ ] **Docker / docker-compose** and a `.env.example`
+- [ ] **Docker / docker-compose**
 - [ ] **CI pipeline** (GitHub Actions running the test suite against a Postgres service)
-- [ ] **Token strategy** – access tokens are long-lived and there is no refresh/revocation flow yet; planned: short-lived access token + refresh token
 - [ ] **SMS delivery** – the phone-number OTP channel has no SMS provider wired yet (only email/SMTP is implemented)
-- [ ] **Google OAuth URLs** are hard-coded to `localhost` and need to become configurable
 - [ ] **Transactions** for multi-step writes (e.g. creating a blog with its categories)
 - [ ] Broader test coverage (comments, notifications, follow/like flows) and more frontend tests
 

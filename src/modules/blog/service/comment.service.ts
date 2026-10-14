@@ -11,7 +11,7 @@ import { BlogEntity } from '../entities/blog.entity';
 import { IsNull, Repository } from 'typeorm';
 import { CreateCommentDto, UpdateCommentDto } from '../dto/comment.dto';
 import { BlogService } from './blog.service';
-import { BlogCommenrtEntity } from '../entities/comment.entity';
+import { BlogCommentEntity } from '../entities/comment.entity';
 import {
   BadRequestMessage,
   NotFoundMessage,
@@ -34,8 +34,8 @@ export class BlogCommentService {
     @InjectRepository(BlogEntity)
     private blogRepository: Repository<BlogEntity>,
 
-    @InjectRepository(BlogCommenrtEntity)
-    private blogCommentRepository: Repository<BlogCommenrtEntity>,
+    @InjectRepository(BlogCommentEntity)
+    private blogCommentRepository: Repository<BlogCommentEntity>,
 
     @Inject(forwardRef(() => BlogService))
     private blogService: BlogService,
@@ -49,7 +49,7 @@ export class BlogCommentService {
 
     const blog = await this.blogService.checkExistBlogById(Number(blogId));
 
-    let parent: BlogCommenrtEntity | null = null;
+    let parent: BlogCommentEntity | null = null;
 
     if (parentId && Number(parentId) > 0) {
       parent = await this.blogCommentRepository.findOneBy({
@@ -68,9 +68,7 @@ export class BlogCommentService {
     // Notify after the comment persisted. Never notify about one's own action.
     // Top-level comment → blog author; reply → parent comment author.
     const commentId = Number(inserted.identifiers?.[0]?.id ?? 0);
-    const recipientId = parent
-      ? parent.userId
-      : blog.authorId;
+    const recipientId = parent ? parent.userId : blog.authorId;
     if (recipientId && recipientId !== userId) {
       try {
         await this.notificationService.push({
@@ -200,7 +198,7 @@ export class BlogCommentService {
    * moderate any comment (consistent with the accept/reject policy above).
    * Ownership is derived from the DB record + req.user — never from the body.
    */
-  private assertCommentAuthor(comment: BlogCommenrtEntity, user: UserEntity) {
+  private assertCommentAuthor(comment: BlogCommentEntity, user: UserEntity) {
     if (user.role === Roles.Admin) return;
     if (comment.userId === user.id) return;
     throw new ForbiddenException(ForbiddenMessage.AccessDenied);
@@ -215,7 +213,11 @@ export class BlogCommentService {
     await this.blogCommentRepository.save(comment);
     return {
       message: PublicMessage.Updated,
-      comment: { id: comment.id, text: comment.text, accepted: comment.accepted },
+      comment: {
+        id: comment.id,
+        text: comment.text,
+        accepted: comment.accepted,
+      },
     };
   }
   async remove(id: number, user: UserEntity) {
@@ -285,7 +287,7 @@ export class BlogCommentService {
    * The authenticated user is passed in from the controller (req.user).
    */
   private async assertCommentOwner(
-    comment: BlogCommenrtEntity,
+    comment: BlogCommentEntity,
     user?: UserEntity,
   ) {
     if (!user) return;

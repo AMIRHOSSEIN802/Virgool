@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ApiBearerAuth, ApiConsumes, ApiParam } from '@nestjs/swagger';
-import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
+import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.enum';
 import {
   ChangeEmailDto,
   ChangePhoneDto,
@@ -37,7 +37,7 @@ import { AdminUserFilterDto } from './dto/admin-users.dto';
 import { PublicMessage } from 'src/common/enums/message.enum';
 import { Pagination } from 'src/common/decorators/pagination.decorator';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
-import { CanAccess } from 'src/common/decorators/role.dexorator';
+import { CanAccess } from 'src/common/decorators/role.decorator';
 import { Roles } from 'src/common/enums/role.eunm';
 import { AllowBlocked } from 'src/common/decorators/allow-blocked.decorator';
 import { DeleteAccountDto } from './dto/delete-account.dto';

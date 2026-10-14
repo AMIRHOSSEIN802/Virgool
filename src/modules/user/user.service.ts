@@ -84,13 +84,13 @@ export class UserService {
   ) {}
 
   async changeProfile(files: ProfileImages, profileDto: ProfileDto) {
-    if (files?.image_profile?.length > 0) {
-      const [image] = files?.image_profile;
-      profileDto.image_profile = image?.path?.slice(7);
+    if (files?.image_profile && files.image_profile.length > 0) {
+      const [image] = files.image_profile;
+      if (image?.path) profileDto.image_profile = image.path.slice(7);
     }
-    if (files?.bg_image?.length > 0) {
-      const [image] = files?.bg_image;
-      profileDto.bg_image = image?.path?.slice(7);
+    if (files?.bg_image && files.bg_image.length > 0) {
+      const [image] = files.bg_image;
+      if (image?.path) profileDto.bg_image = image.path.slice(7);
     }
     const { id: userId, profileId } = this.request.user;
     let profile = await this.profileRepository.findOneBy({ userId });

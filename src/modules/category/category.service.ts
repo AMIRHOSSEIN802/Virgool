@@ -64,19 +64,25 @@ export class CategoryService {
     // ignore the extra field). One grouped query — no N+1, nothing invented.
     let usage = new Map<number, number>();
     if (categories.length > 0) {
-      const rows: { categoryId: number; n: string }[] = await this.categoryRepository.manager
-        .getRepository(BlogCategoryEntity)
-        .createQueryBuilder('bc')
-        .select('bc.categoryId', 'categoryId')
-        .addSelect('COUNT(*)', 'n')
-        .where('bc.categoryId IN (:...ids)', { ids: categories.map((c) => c.id) })
-        .groupBy('bc.categoryId')
-        .getRawMany();
+      const rows: { categoryId: number; n: string }[] =
+        await this.categoryRepository.manager
+          .getRepository(BlogCategoryEntity)
+          .createQueryBuilder('bc')
+          .select('bc.categoryId', 'categoryId')
+          .addSelect('COUNT(*)', 'n')
+          .where('bc.categoryId IN (:...ids)', {
+            ids: categories.map((c) => c.id),
+          })
+          .groupBy('bc.categoryId')
+          .getRawMany();
       usage = new Map(rows.map((r) => [Number(r.categoryId), Number(r.n)]));
     }
     return {
       pagination: paginationGenerator(count, page, limit),
-      categories: categories.map((c) => ({ ...c, blogCount: usage.get(c.id) ?? 0 })),
+      categories: categories.map((c) => ({
+        ...c,
+        blogCount: usage.get(c.id) ?? 0,
+      })),
     };
   }
 
@@ -97,13 +103,16 @@ export class CategoryService {
       // Normalized like create; the duplicate check must ignore the row's own
       // id (renaming "abc" → "ABC" resolves to the same title and is a no-op).
       const resolved = title.trim().toLowerCase();
-      const clash = await this.categoryRepository.findOneBy({ title: resolved });
+      const clash = await this.categoryRepository.findOneBy({
+        title: resolved,
+      });
       if (clash && clash.id !== id) {
         throw new ConflictException(ConflictMessage.CategoryTitle);
       }
       category.title = resolved;
     }
-    if (priority !== undefined && priority !== null) category.priority = priority;
+    if (priority !== undefined && priority !== null)
+      category.priority = priority;
     await this.categoryRepository.save(category);
     return {
       message: PublicMessage.Updated,

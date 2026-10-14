@@ -21,10 +21,10 @@ import {
   CreateCommentDto,
   UpdateCommentDto,
 } from '../dto/comment.dto';
-import { CanAccess } from 'src/common/decorators/role.dexorator';
+import { CanAccess } from 'src/common/decorators/role.decorator';
 import { RoleGuard } from '../../auth/guards/role.guard';
 import { Roles } from 'src/common/enums/role.eunm';
-import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
+import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.enum';
 
 @Controller('blog-comment')
 @ApiTags('Blog')

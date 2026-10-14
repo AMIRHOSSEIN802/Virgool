@@ -13,7 +13,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { GoogleUser } from './types/response';
 import { GoogleExchangeDto } from './dto/auth.dto';
-import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
+import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.enum';
 import { SameOriginGuard } from 'src/common/guards/same-origin.guard';
 import { frontendOrigin } from 'src/common/utils/origin.util';
 

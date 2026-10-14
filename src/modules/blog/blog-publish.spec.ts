@@ -1,16 +1,16 @@
-﻿/**
- * POST /blog/:id/publish â€” authorization, idempotency and visibility (R-02).
+/**
+ * POST /blog/:id/publish — authorization, idempotency and visibility (R-02).
  *
  * The endpoint already existed; this suite pins its verified contract against
  * a REAL PostgreSQL schema (virgool_blog_publish_test, created automatically)
  * so the development database is never touched:
  *
- *  - owner        â†’ 201, status becomes 'published' (only the status changes)
- *  - admin        â†’ 201 (may publish anyone's blog)
- *  - other user   â†’ 403, status untouched
- *  - missing blog â†’ 404
- *  - guest        â†’ 401 (AuthGuard)
- *  - repeat       â†’ 201 (idempotent, no error)
+ *  - owner        → 201, status becomes 'published' (only the status changes)
+ *  - admin        → 201 (may publish anyone's blog)
+ *  - other user   → 403, status untouched
+ *  - missing blog → 404
+ *  - guest        → 401 (AuthGuard)
+ *  - repeat       → 201 (idempotent, no error)
  *
  * And the visibility rules that make publishing meaningful (requirement 11):
  *  - drafts never appear in the public feed/search or suggestions and are
@@ -76,7 +76,7 @@ describe('POST /blog/:id/publish (R-02 contract)', () => {
   const searchFeed = (term: string) =>
     request(appServer()).get('/blog').query({ search: term });
 
-  /** supertest's `res.body` is `any` â€” narrow it before reading fields. */
+  /** supertest's `res.body` is `any` — narrow it before reading fields. */
   const bodyOf = (res: request.Response): Record<string, unknown> =>
     res.body as Record<string, unknown>;
 
@@ -107,16 +107,16 @@ describe('POST /blog/:id/publish (R-02 contract)', () => {
   };
 
   const createBlog = async (authorId: number, status: BlogStatus) => {
-    const title = `${unique('pubtitle')} Ù…Ù‚Ø§Ù„Ù‡`;
+    const title = `${unique('pubtitle')} مقاله`;
     const slug = unique('pubslug');
     const result = await blogs().insert({
       title,
       // The slug doubles as a search token (feed search matches title AND
       // description), so each blog is individually findable in `GET /blog?search`.
-      description: `${title} â€” ØªÙˆØ¶ÛŒØ­Ø§Øª ${slug}`,
-      content: '<p>Ù…Ø­ØªÙˆØ§ÛŒ Ø¢Ø²Ù…Ø§ÛŒØ´ÛŒ</p>',
+      description: `${title} — توضیحات ${slug}`,
+      content: '<p>محتوای آزمایشی</p>',
       slug,
-      time_for_study: '5 Ø¯Ù‚ÛŒÙ‚Ù‡',
+      time_for_study: '5 دقیقه',
       status,
       authorId,
     });
@@ -126,10 +126,10 @@ describe('POST /blog/:id/publish (R-02 contract)', () => {
   // ------------------------------------------------------------- test hooks
 
   beforeAll(async () => {
-    // Point the application at the isolated schema BEFORE AppModule loads â€”
+    // Point the application at the isolated schema BEFORE AppModule loads —
     // TypeOrmConfig() reads process.env at module import time.
     process.env.DB_NAME = TEST_DB;
-    // R-04: keep the global limiter ACTIVE but deterministic for this suite —
+    // R-04: keep the global limiter ACTIVE but deterministic for this suite �
     // a generous window so its request volume never trips a 429.
     process.env.RATE_LIMIT_TTL_MS = '60000';
     process.env.RATE_LIMIT_MAX = '100000';
@@ -167,7 +167,7 @@ describe('POST /blog/:id/publish (R-02 contract)', () => {
     await app.init();
     ds = app.get(DataSource);
 
-    // This database belongs to this suite â€” wipe blog rows (and everything
+    // This database belongs to this suite — wipe blog rows (and everything
     // referencing them) so suggestion sampling can never see stale fixtures
     // from an interrupted earlier run.
     await ds.query('TRUNCATE TABLE blog CASCADE');
@@ -179,7 +179,7 @@ describe('POST /blog/:id/publish (R-02 contract)', () => {
         try {
           await users().delete({ id }); // cascades their blogs
         } catch {
-          // best effort â€” the row may already be gone
+          // best effort — the row may already be gone
         }
       }
       await app.close();
@@ -215,7 +215,7 @@ describe('POST /blog/:id/publish (R-02 contract)', () => {
     expect(after?.content).toBe(before?.content);
   });
 
-  it('lets an admin publish someone elseâ€™s draft', async () => {
+  it('lets an admin publish someone else’s draft', async () => {
     const admin = await createUser({ role: Roles.Admin });
     const author = await createUser();
     const { id } = await createBlog(author.id, BlogStatus.Draft);
@@ -250,7 +250,7 @@ describe('POST /blog/:id/publish (R-02 contract)', () => {
     expect(bodyOf(res).message).toBe(NotFoundMessage.NotFoundPost);
   });
 
-  it('is idempotent â€” publishing an already-published blog succeeds again', async () => {
+  it('is idempotent — publishing an already-published blog succeeds again', async () => {
     const owner = await createUser();
     const { id } = await createBlog(owner.id, BlogStatus.Draft);
 
@@ -274,17 +274,17 @@ describe('POST /blog/:id/publish (R-02 contract)', () => {
     // Unique search token lives only in this blog's title/description.
     const token = slug;
 
-    // Draft: absent from the public feed/searchâ€¦
+    // Draft: absent from the public feed/search…
     let feed = await searchFeed(token);
     expect(feed.status).toBe(200);
     expect(feedIds(feed)).not.toContain(id);
 
-    // â€¦404 by slug for everyone except the ownerâ€¦
+    // …404 by slug for everyone except the owner…
     expect((await bySlug(slug)).status).toBe(404);
     expect((await bySlug(slug, stranger.id)).status).toBe(404);
     expect((await bySlug(slug, owner.id)).status).toBe(200);
 
-    // Publish â†’ now visible publicly.
+    // Publish → now visible publicly.
     expect((await publish(id, owner.id)).status).toBe(201);
 
     feed = await searchFeed(token);
@@ -293,7 +293,7 @@ describe('POST /blog/:id/publish (R-02 contract)', () => {
   });
 
   it('suggestions never include drafts, and include the blog once published', async () => {
-    // Suggestions sample up to 3 random published blogs â€” isolate the pool so
+    // Suggestions sample up to 3 random published blogs — isolate the pool so
     // the assertion is deterministic (this database belongs to this suite).
     await ds.query('TRUNCATE TABLE blog CASCADE');
 
@@ -301,7 +301,7 @@ describe('POST /blog/:id/publish (R-02 contract)', () => {
     const draft = await createBlog(owner.id, BlogStatus.Draft);
     const host = await createBlog(owner.id, BlogStatus.Published);
 
-    // A guest reads the published host â€” the draft must never be suggested.
+    // A guest reads the published host — the draft must never be suggested.
     const before = await bySlug(host.slug);
     expect(before.status).toBe(200);
     const suggestedBefore = suggestedIds(before);

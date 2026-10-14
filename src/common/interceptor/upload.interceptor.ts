@@ -18,5 +18,5 @@ export function UploadFile(fieldName: string, folderName: string = 'images') {
       if (ALLOWED_MIME.test(file.mimetype)) cb(null, true);
       else cb(new BadRequestException('فایل باید تصویر معتبر باشد'), false);
     },
-  }) {}
+  }) {};
 }

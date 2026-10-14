@@ -15,7 +15,7 @@ import { ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { AuthDecorator } from 'src/common/decorators/auth.decorators';
 import { UploadFile } from 'src/common/interceptor/upload.interceptor';
 import type { MulterFile } from 'src/common/utils/multer.utils';
-import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
+import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.enum';
 
 @Controller('image')
 @ApiTags('image')

@@ -16,7 +16,7 @@ export class BlogBookmarkEntity extends BaseEntity {
   blogId: number;
   @Column()
   userId: number;
-  @ManyToOne(() => UserEntity, (user) => user.blog_bookmaeks, {
+  @ManyToOne(() => UserEntity, (user) => user.blog_bookmarks, {
     onDelete: 'CASCADE',
   })
   user: UserEntity;

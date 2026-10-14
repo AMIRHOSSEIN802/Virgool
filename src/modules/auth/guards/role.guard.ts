@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { ROLE_KEY } from 'src/common/decorators/role.dexorator';
+import { ROLE_KEY } from 'src/common/decorators/role.decorator';
 import { Roles } from 'src/common/enums/role.eunm';
 
 @Injectable()

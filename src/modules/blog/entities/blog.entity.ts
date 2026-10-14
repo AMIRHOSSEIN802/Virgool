@@ -14,7 +14,7 @@ import { BlogStatus } from '../enums/status.enum';
 import { UserEntity } from 'src/modules/user/entities/user.entity';
 import { BlogLikeEntity } from './like.entity';
 import { BlogBookmarkEntity } from './bookmark.entity';
-import { BlogCommenrtEntity } from './comment.entity';
+import { BlogCommentEntity } from './comment.entity';
 import { BlogCategoryEntity } from './blog-category.entity';
 
 @Entity(EntityName.blog)
@@ -87,8 +87,8 @@ export class BlogEntity extends BaseEntity {
 
   // ==================== Comments ====================
 
-  @OneToMany(() => BlogCommenrtEntity, (comment) => comment.blog)
-  comments: BlogCommenrtEntity[];
+  @OneToMany(() => BlogCommentEntity, (comment) => comment.blog)
+  comments: BlogCommentEntity[];
 
   @VirtualColumn({
     query: (alias) =>

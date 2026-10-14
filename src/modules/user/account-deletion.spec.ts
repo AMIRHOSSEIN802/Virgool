@@ -31,7 +31,7 @@ import { ProfileEntity } from './entities/profile.entity';
 import { OtpEntity } from './entities/otp.entity';
 import { FollowEntity } from './entities/follow.entity';
 import { BlogEntity } from '../blog/entities/blog.entity';
-import { BlogCommenrtEntity } from '../blog/entities/comment.entity';
+import { BlogCommentEntity } from '../blog/entities/comment.entity';
 import { BlogLikeEntity } from '../blog/entities/like.entity';
 import { BlogBookmarkEntity } from '../blog/entities/bookmark.entity';
 import { ImageEntity } from '../image/entities/image.entity';
@@ -88,7 +88,7 @@ describe('DELETE /user/account (account deletion)', () => {
   const profiles = () => ds.getRepository(ProfileEntity);
   const otps = () => ds.getRepository(OtpEntity);
   const blogs = () => ds.getRepository(BlogEntity);
-  const comments = () => ds.getRepository(BlogCommenrtEntity);
+  const comments = () => ds.getRepository(BlogCommentEntity);
   const likes = () => ds.getRepository(BlogLikeEntity);
   const bookmarks = () => ds.getRepository(BlogBookmarkEntity);
   const follows = () => ds.getRepository(FollowEntity);

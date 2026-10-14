@@ -12,7 +12,7 @@ import { BlogEntity } from './blog.entity';
 import { EntityName } from 'src/common/enums/entity.eunm';
 
 @Entity(EntityName.BlogComments)
-export class BlogCommenrtEntity extends BaseEntity {
+export class BlogCommentEntity extends BaseEntity {
   @Column()
   text: string;
   @Column({ default: true })
@@ -23,7 +23,7 @@ export class BlogCommenrtEntity extends BaseEntity {
   userId: number;
   @Column({ nullable: true })
   parentId: number | null;
-  @ManyToOne(() => UserEntity, (user) => user.blog_commets, {
+  @ManyToOne(() => UserEntity, (user) => user.blog_comments, {
     onDelete: 'CASCADE',
   })
   user: UserEntity;
@@ -32,15 +32,15 @@ export class BlogCommenrtEntity extends BaseEntity {
   })
   @JoinColumn({ name: 'blogId' })
   blog: BlogEntity;
-  @ManyToOne(() => BlogCommenrtEntity, (comment) => comment.children, {
+  @ManyToOne(() => BlogCommentEntity, (comment) => comment.children, {
     nullable: true,
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'parentId' })
-  parent: BlogCommenrtEntity | null;
+  parent: BlogCommentEntity | null;
 
-  @OneToMany(() => BlogCommenrtEntity, (comment) => comment.parent)
-  children: BlogCommenrtEntity[];
+  @OneToMany(() => BlogCommentEntity, (comment) => comment.parent)
+  children: BlogCommentEntity[];
   @CreateDateColumn()
   created_at: Date;
 }

@@ -1,10 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, Length, Min } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Length,
+  Min,
+} from 'class-validator';
 
 export class CreateCategoryDto {
   @ApiProperty()
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(({ value }: { value: unknown }): unknown =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString({ message: 'عنوان دسته باید متن باشد' })
   @IsNotEmpty({ message: 'عنوان دسته نمی‌تواند خالی باشد' })
   @Length(2, 30, { message: 'عنوان دسته باید بین ۲ تا ۳۰ کاراکتر باشد' })

@@ -10,10 +10,10 @@ import {
 import { AuthService } from './auth.service';
 import { ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { AuthDto, CheckOtpDto } from './dto/auth.dto';
-import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.eum';
+import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.enum';
 import type { Request, Response } from 'express';
 import { AuthDecorator } from 'src/common/decorators/auth.decorators';
-import { CanAccess } from 'src/common/decorators/role.dexorator';
+import { CanAccess } from 'src/common/decorators/role.decorator';
 import { Roles } from 'src/common/enums/role.eunm';
 import { serializeAuthenticatedUser } from './auth-user.serializer';
 import { SameOriginGuard } from 'src/common/guards/same-origin.guard';

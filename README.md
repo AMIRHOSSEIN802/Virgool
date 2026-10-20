@@ -148,6 +148,8 @@ These are the parts of the backend that received the most design attention:
 - **Strict input validation** – a single global `ValidationPipe` with `whitelist`, `forbidNonWhitelisted` and `transform` (mass-assignment hardening), shared between production and tests
 - **Search safety** – `LIKE` wildcards (`%`, `_`, `\`) in user input are escaped and all queries are parameter-bound
 - **Rate limiting** – global per-IP throttling (default 100 requests / 60 s, configurable via env), independent from the stricter OTP limits
+- **Security headers** – Helmet defaults on every response (`nosniff`, HSTS, frameguard, hidden `X-Powered-By`); CSP is off so Swagger UI keeps working and `Cross-Origin-Resource-Policy` allows `cross-origin` loads because the frontend fetches backend-hosted images cross-origin
+- **Health probes** – `GET /health` (liveness) and `GET /health/ready` (database readiness, 503 with a generic message when the database is unreachable)
 - **Safe uploads** – extension whitelist, MIME check and 5 MB size limit; filesystem deletions are confined to the `public/` directory
 - **Account deletion** – runs in one transaction, refuses to delete the last remaining admin, and removes files from disk only after the commit succeeds (best-effort, never fails the request)
 - **Notifications are non-blocking** – a failed notification never fails the like / follow / comment that triggered it; repeatable events (like, follow) are de-duplicated while unread
@@ -170,6 +172,7 @@ Interactive documentation (Swagger UI) is available at `http://localhost:3000/sw
 | **Category** | `GET /category` · `GET /category/:id` |
 | **Image** | `POST /image` · `GET /image` · `GET /image/:id` · `DELETE /image/:id` |
 | **Notification** | `GET /notification` · `GET /notification/unread-count` · `PATCH /notification/read-all` · `PATCH /notification/:id/read` |
+| **Health** | `GET /health` (liveness) · `GET /health/ready` (database readiness) |
 
 Protected routes expect an `Authorization: Bearer <token>` header.
 
@@ -257,6 +260,17 @@ cd frontend && npm run build && npm run start
 ```
 
 In production you **must** configure SMTP (otherwise OTP delivery fails by design) and set `NODE_ENV=production`.
+
+### Production with Docker
+
+```bash
+docker build -t virgool-backend .
+docker run --rm -p 3000:3000 --env-file .env virgool-backend
+```
+
+The image is multi-stage, runs as a non-root user, and takes all
+configuration from environment variables (see `.env.example`) — no `.env`
+file or secret is baked into it.
 
 ---
 
@@ -347,9 +361,8 @@ Virgool/
 
 Being upfront about what is not finished yet:
 
-- [ ] **Database migrations** – the schema currently relies on TypeORM `synchronize`; migrations should replace it before any real deployment
-- [ ] **Docker / docker-compose**
-- [ ] **CI pipeline** (GitHub Actions running the test suite against a Postgres service)
+- [ ] **Database migrations** – the schema currently relies on TypeORM `synchronize`; migrations should replace it before any real deployment (candidate constraints are collected in `docs/pending-migration-notes.md`)
+- [ ] **Docker Compose** orchestration for production (the backend `Dockerfile` exists; compose wiring is still missing)
 - [ ] **SMS delivery** – the phone-number OTP channel has no SMS provider wired yet (only email/SMTP is implemented)
 - [ ] **Transactions** for multi-step writes (e.g. creating a blog with its categories)
 - [ ] Broader test coverage (comments, notifications, follow/like flows) and more frontend tests

@@ -13,6 +13,7 @@ import { AddUserToReqWOV } from 'src/common/middleware/addUserToReqWOV.middlewar
 import { ImageModule } from '../image/image.module';
 import { NotificationModule } from '../notification/notification.module';
 import { OtpDeliveryModule } from '../otp-delivery/otp-delivery.module';
+import { HealthModule } from '../health/health.module';
 import { RateLimitMessage } from 'src/common/enums/message.enum';
 import { rateLimitFromEnv } from 'src/common/config/rate-limit.config';
 
@@ -37,6 +38,7 @@ import { rateLimitFromEnv } from 'src/common/config/rate-limit.config';
       }),
     }),
     OtpDeliveryModule,
+    HealthModule,
     AuthModule,
     UserModule,
     CategoryModule,

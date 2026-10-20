@@ -4,8 +4,10 @@ import { AppModule } from './modules/app/app.module';
 import cookieParser from 'cookie-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { createAppValidationPipe } from './common/pipes/app-validation.pipe';
+import { applySecurityHeaders } from './common/config/security-headers';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  applySecurityHeaders(app);
   SwaggerConfigInit(app);
   app.useStaticAssets('public');
   app.useGlobalPipes(createAppValidationPipe());
